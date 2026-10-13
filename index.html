@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C1511" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EBE4DA" media="(prefers-color-scheme: light)">
+<meta name="description" content="Coffee brewing calculator and pour timer for V60, French press and cold brew.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Brew">
+<title>Brew</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#1C1511;
+  --raise:#2A1F18;
+  --line:#3C2E24;
+  --ink:#F4EDE4;
+  --muted:#A08F80;
+  --signal:#E8A33D;
+  --font:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:dark light;
+}
+:root[data-theme="light"]{
+  --ground:#EBE4DA; --raise:#F6F2EC; --line:#D6CCBE;
+  --ink:#241A13; --muted:#6E6054; --signal:#A86A12;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --ground:#EBE4DA; --raise:#F6F2EC; --line:#D6CCBE;
+    --ink:#241A13; --muted:#6E6054; --signal:#A86A12;
+  }
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{
+  height:100%;margin:0;background:var(--ground);color:var(--ink);
+  font-family:var(--font);font-size:16px;line-height:1.45;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+button,input{font:inherit;color:inherit;font-variant-numeric:tabular-nums}
+button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:6px}
+
+.i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;
+   stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.i-sm{width:18px;height:18px}
+.i-lg{width:52px;height:52px;stroke-width:1.3}
+
+.wrap{max-width:430px;margin:0 auto;padding:18px 20px 32px;min-height:100%;display:flex;flex-direction:column}
+
+/* method selector */
+.methods{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;background:var(--raise);padding:5px;border-radius:14px}
+.methods button{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:11px 3px 9px;border-radius:10px;font-size:12.5px;font-weight:600;
+  color:var(--muted);letter-spacing:-.01em;
+}
+.methods button[aria-pressed="true"]{background:var(--ground);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.methods button[aria-pressed="true"] .i{color:var(--signal)}
+
+/* dose */
+.dose{margin-top:24px}
+.doseswitch{display:flex;gap:16px;margin-bottom:8px}
+.doseswitch button{
+  display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;
+  color:var(--muted);padding:3px 0 5px;border-bottom:2px solid transparent;
+}
+.doseswitch button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--signal)}
+.stepper{display:flex;align-items:center;gap:12px}
+.stepper input{
+  flex:1;min-width:0;background:none;border:0;padding:0;
+  font-size:76px;font-weight:600;letter-spacing:-.045em;line-height:1;
+}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper input[type=number]{-moz-appearance:textfield}
+.unit{font-size:24px;font-weight:500;color:var(--muted);margin-left:-8px;align-self:flex-end;padding-bottom:9px}
+.bump{display:flex;flex-direction:column;gap:5px}
+.bump button{
+  width:46px;height:38px;border-radius:10px;background:var(--raise);
+  display:flex;align-items:center;justify-content:center;color:var(--ink);
+}
+.bump button:active{background:var(--line)}
+
+/* result */
+.result{
+  margin-top:18px;padding:15px 18px;border-radius:14px;background:var(--raise);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.resleft{display:flex;align-items:center;gap:12px;min-width:0}
+.resleft .i{color:var(--signal)}
+.result .cap{font-size:13px;color:var(--muted);font-weight:500;line-height:1.2}
+.result .big{font-size:38px;font-weight:600;letter-spacing:-.04em;line-height:1.05}
+.result .big em{font-style:normal;font-size:18px;font-weight:500;color:var(--muted);margin-left:3px}
+.result .ratio{font-size:13.5px;color:var(--muted);text-align:right;font-weight:600;flex:none}
+.est{margin-top:9px;font-size:12.5px;color:var(--muted);line-height:1.45;display:flex;gap:8px;align-items:flex-start}
+.est .i{margin-top:1px}
+
+/* strength */
+.strength{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
+.strength button{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 3px 9px;border-radius:11px;font-size:12.5px;font-weight:600;
+  color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);
+}
+.strength button[aria-pressed="true"]{color:var(--ground);background:var(--signal);box-shadow:none}
+:root[data-theme="light"] .strength button[aria-pressed="true"]{color:#FFF8EE}
+
+/* spec rows */
+.spec{margin-top:22px;border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.row .k{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--muted);font-weight:500;flex:none}
+.row .v{font-size:15px;font-weight:600;text-align:right}
+.row input.v{
+  background:none;border:0;padding:5px 8px;max-width:58%;border-radius:8px;
+  box-shadow:inset 0 0 0 1px transparent;
+}
+.row input.v:hover,.row input.v:focus{box-shadow:inset 0 0 0 1px var(--line);outline:none}
+.row input.v::placeholder{color:var(--muted);font-weight:500}
+.toggle{display:flex;gap:6px}
+.toggle button{
+  display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;
+  font-size:13px;font-weight:600;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);
+}
+.toggle button[aria-pressed="true"]{color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+
+.note{margin-top:16px;font-size:13px;line-height:1.5;color:var(--muted)}
+.note b{color:var(--ink);font-weight:600}
+
+.go{
+  margin-top:24px;width:100%;padding:18px;border-radius:14px;
+  background:var(--signal);color:#1C1511;font-size:17px;font-weight:700;letter-spacing:-.01em;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+}
+:root[data-theme="light"] .go{color:#FFF8EE}
+.go:active{filter:brightness(.92)}
+.spacer{flex:1 1 auto;min-height:12px}
+.foot{margin-top:22px;font-size:11.5px;line-height:1.6;color:var(--muted);opacity:.8}
+.foot a{color:var(--muted)}
+
+/* cold brew resting card */
+.resting{margin-top:18px;padding:17px 18px;border-radius:14px;background:var(--raise);display:flex;gap:14px}
+.resting .i-lg{color:var(--signal);width:40px;height:40px}
+.resting .when{font-size:28px;font-weight:600;letter-spacing:-.035em;line-height:1.15}
+.resting .sub{font-size:13px;color:var(--muted);margin-top:3px}
+.resting button{margin-top:11px;font-size:13px;font-weight:600;color:var(--signal);padding:0}
+.hidden{display:none !important}
+
+/* ---------- brew screen ---------- */
+.brew{
+  position:fixed;inset:0;background:var(--ground);display:none;
+  flex-direction:column;z-index:10;
+  padding:calc(14px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px));
+}
+.brew.on{display:flex}
+.brewinner{max-width:430px;margin:0 auto;width:100%;flex:1;display:flex;flex-direction:column}
+.brewtop{display:flex;align-items:center;justify-content:space-between}
+.brewtop button{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--muted);padding:6px 0}
+.clock{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600;color:var(--muted)}
+.stage{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:2px}
+.stephead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+.stephead .i-lg{color:var(--signal)}
+.stepname{font-size:20px;font-weight:600;color:var(--signal);letter-spacing:-.01em}
+.target{font-size:84px;font-weight:600;letter-spacing:-.05em;line-height:.98}
+.target em{font-style:normal;font-size:28px;font-weight:500;color:var(--muted);margin-left:4px}
+.stepnote{font-size:16.5px;line-height:1.42;color:var(--ink);max-width:23em;margin-top:8px}
+.countdown{font-size:14.5px;font-weight:600;color:var(--muted);margin-top:14px}
+.bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:9px;width:100%}
+.bar i{display:block;height:100%;background:var(--signal);width:0;border-radius:3px}
+.upnext{margin-top:18px;font-size:13px;color:var(--muted);min-height:1.4em;display:flex;align-items:center;gap:7px}
+.brewfoot{display:flex;gap:10px;margin-top:16px}
+.brewfoot button{
+  flex:1;padding:15px;border-radius:13px;font-size:15px;font-weight:600;
+  box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.brewfoot button.primary{background:var(--signal);color:#1C1511;box-shadow:none}
+:root[data-theme="light"] .brewfoot button.primary{color:#FFF8EE}
+
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+@media (max-height:640px){
+  .stepper input{font-size:58px}
+  .target{font-size:62px}
+  .i-lg{width:40px;height:40px}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="ic-v60" viewBox="0 0 24 24">
+    <path d="M4.5 5.5h15l-6 11h-3l-6-11Z"/><path d="M7.2 9.5h9.6"/><path d="M12 19.5v1.8"/>
+  </symbol>
+  <symbol id="ic-press" viewBox="0 0 24 24">
+    <path d="M6.5 7.5h11v12a1.5 1.5 0 0 1-1.5 1.5H8a1.5 1.5 0 0 1-1.5-1.5v-12Z"/>
+    <path d="M6.5 11.5h11"/><path d="M12 2.8v4.7"/><path d="M8.5 2.8h7"/>
+  </symbol>
+  <symbol id="ic-cold" viewBox="0 0 24 24">
+    <path d="M7 8.5h10v10.5a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8.5Z"/>
+    <path d="M6.2 5.5h11.6v3H6.2z"/>
+    <path d="M7.4 13.2c1.4 1 3-.9 4.6 0s3.2-1 4.6 0"/>
+  </symbol>
+  <symbol id="ic-bean" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="12" rx="8.2" ry="6.4" transform="rotate(-38 12 12)"/>
+    <path d="M7.6 16.4C9.9 14 11 10 16.4 7.6"/>
+  </symbol>
+  <symbol id="ic-drop" viewBox="0 0 24 24">
+    <path d="M12 3.2c3.4 4 5.6 6.7 5.6 9.4a5.6 5.6 0 0 1-11.2 0c0-2.7 2.2-5.4 5.6-9.4Z"/>
+  </symbol>
+  <symbol id="ic-light" viewBox="0 0 24 24">
+    <path d="M5.5 7h13v2.5a6.5 6.5 0 0 1-13 0V7Z"/><path d="M5.8 18.8h12.4"/>
+    <path d="M6.2 12.6c3.4-1 8.2-1 11.6 0" opacity=".9"/>
+  </symbol>
+  <symbol id="ic-normal" viewBox="0 0 24 24">
+    <path d="M5.5 7h13v2.5a6.5 6.5 0 0 1-13 0V7Z"/><path d="M5.8 18.8h12.4"/>
+    <path d="M5.6 10.4c3.8-1.1 9-1.1 12.8 0"/>
+    <path d="M6.2 13.4c3.4-1 8.2-1 11.6 0" opacity=".9"/>
+  </symbol>
+  <symbol id="ic-strong" viewBox="0 0 24 24">
+    <path d="M5.5 7h13v2.5a6.5 6.5 0 0 1-13 0V7Z" fill="currentColor" fill-opacity=".22"/>
+    <path d="M5.8 18.8h12.4"/><path d="M5.5 8.2h13"/>
+    <path d="M5.9 11c3.7-1 8.5-1 12.2 0"/><path d="M6.4 13.8c3.2-.9 7.8-.9 11 0"/>
+  </symbol>
+  <symbol id="ic-scale" viewBox="0 0 24 24">
+    <rect x="3.2" y="6.8" width="17.6" height="11.4" rx="2.2"/>
+    <path d="M8.2 14.4h7.6"/><path d="M12 6.8V4.2"/><path d="M9.6 10.6h4.8"/>
+  </symbol>
+  <symbol id="ic-spoon" viewBox="0 0 24 24">
+    <ellipse cx="9" cy="7.6" rx="4.4" ry="3.4" transform="rotate(-32 9 7.6)"/>
+    <path d="M11.6 10.6 19 19.6"/>
+  </symbol>
+  <symbol id="ic-grind" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="2.6"/>
+    <path d="M12 3.6v3.4M12 17v3.4M3.6 12h3.4M17 12h3.4"/>
+  </symbol>
+  <symbol id="ic-temp" viewBox="0 0 24 24">
+    <path d="M14 13.6V5.2a2 2 0 1 0-4 0v8.4a4.2 4.2 0 1 0 4 0Z"/><path d="M12 9.6v6"/>
+  </symbol>
+  <symbol id="ic-clock" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2"/>
+  </symbol>
+  <symbol id="ic-serve" viewBox="0 0 24 24">
+    <path d="M5.4 8.2h13.2l-1.5 11a1.8 1.8 0 0 1-1.8 1.6H8.7a1.8 1.8 0 0 1-1.8-1.6l-1.5-11Z"/>
+    <path d="M6.6 12.4h10.8"/><path d="M12 3.4v4.8"/>
+  </symbol>
+  <symbol id="ic-play" viewBox="0 0 24 24"><path d="M7.5 4.8 19 12 7.5 19.2V4.8Z"/></symbol>
+  <symbol id="ic-stop" viewBox="0 0 24 24"><rect x="6.2" y="6.2" width="11.6" height="11.6" rx="2"/></symbol>
+  <symbol id="ic-pause" viewBox="0 0 24 24"><path d="M9.2 5.4v13.2M14.8 5.4v13.2"/></symbol>
+  <symbol id="ic-next" viewBox="0 0 24 24"><path d="M6.5 5.2 15 12l-8.5 6.8V5.2Z"/><path d="M18 5.4v13.2"/></symbol>
+  <symbol id="ic-pour" viewBox="0 0 24 24">
+    <path d="M4.8 5.6h8.4v4.2a4.2 4.2 0 0 1-8.4 0V5.6Z"/><path d="M13.2 6.8h4.6l1.6 2.6"/>
+    <path d="M12 15v5.2"/>
+  </symbol>
+  <symbol id="ic-stir" viewBox="0 0 24 24">
+    <path d="M19.4 12a7.4 7.4 0 1 1-2.6-5.6"/><path d="M19.8 4.6v4.2h-4.2"/>
+  </symbol>
+  <symbol id="ic-swirl" viewBox="0 0 24 24">
+    <path d="M12 20.4a8.4 8.4 0 1 0-8.4-8.4c0 3.1 2.5 5.6 5.6 5.6s5.6-2.5 5.6-5.6a3 3 0 0 0-3-3"/>
+  </symbol>
+  <symbol id="ic-wait" viewBox="0 0 24 24">
+    <path d="M7 3.4h10M7 20.6h10"/><path d="M7.6 3.4v3.4L12 11l4.4-4.2V3.4"/>
+    <path d="M7.6 20.6v-3.4L12 13l4.4 4.2v3.4"/>
+  </symbol>
+  <symbol id="ic-plunge" viewBox="0 0 24 24">
+    <path d="M12 3.4v10.4"/><path d="M8.4 10.4 12 14l3.6-3.6"/><path d="M5.4 17.6h13.2"/>
+  </symbol>
+  <symbol id="ic-done" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.6"/><path d="M8.4 12.2 11 14.8l4.8-5"/>
+  </symbol>
+  <symbol id="ic-info" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5"/><path d="M12 7.8h.01"/>
+  </symbol>
+  <symbol id="ic-mocca" viewBox="0 0 24 24">
+    <path d="M5.4 4h13.2"/><path d="M12 4v2.4"/><path d="M8.2 6.8h7.6"/>
+    <path d="M6.8 9.2h10.4l-1.5 9.3a1.9 1.9 0 0 1-1.9 1.6h-3.6a1.9 1.9 0 0 1-1.9-1.6L6.8 9.2Z"/>
+  </symbol>
+  <symbol id="ic-flow" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="7.6"/>
+    <path d="M12 4.4a7.6 7.6 0 0 1 0 15.2Z" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-fridge" viewBox="0 0 24 24">
+    <rect x="5.6" y="2.8" width="12.8" height="18.4" rx="2.2"/>
+    <path d="M5.6 9.6h12.8"/><path d="M8.6 6v1.6"/><path d="M8.6 12.4V15"/>
+  </symbol>
+</defs></svg>
+
+<div class="wrap" id="home">
+
+  <div class="methods" role="group" aria-label="Brew method">
+    <button data-m="v60" aria-pressed="true"><svg class="i" aria-hidden="true"><use href="#ic-v60"/></svg>V60</button>
+    <button data-m="press" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#ic-press"/></svg>French press</button>
+    <button data-m="cold" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#ic-cold"/></svg>Cold brew</button>
+    <button data-m="mocca" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#ic-mocca"/></svg>Moccamaster</button>
+  </div>
+
+  <div class="dose">
+    <div class="doseswitch" role="group" aria-label="What are you entering">
+      <button data-input="coffee" aria-pressed="true"><svg class="i i-sm" aria-hidden="true"><use href="#ic-bean"/></svg>Coffee</button>
+      <button data-input="water" aria-pressed="false"><svg class="i i-sm" aria-hidden="true"><use href="#ic-drop"/></svg>Water</button>
+    </div>
+    <div class="stepper">
+      <input id="amount" type="number" inputmode="decimal" min="1" step="1" value="30" aria-label="Amount in grams">
+      <span class="unit">g</span>
+      <div class="bump">
+        <button id="up" aria-label="Increase">
+          <svg class="i" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>
+        </button>
+        <button id="down" aria-label="Decrease">
+          <svg class="i" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 12h12"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result">
+    <div class="resleft">
+      <svg class="i" id="outIcon" aria-hidden="true"><use href="#ic-drop"/></svg>
+      <div>
+        <div class="cap" id="outLabel">Water</div>
+        <div class="big"><span id="outVal">500</span><em>g</em></div>
+      </div>
+    </div>
+    <div class="ratio" id="ratioOut">1:16.7</div>
+  </div>
+  <div class="est hidden" id="estimate">
+    <svg class="i i-sm" aria-hidden="true"><use href="#ic-info"/></svg><span id="estText"></span>
+  </div>
+  <div class="est hidden" id="warning">
+    <svg class="i i-sm" aria-hidden="true"><use href="#ic-info"/></svg><span id="warnText"></span>
+  </div>
+
+  <div class="strength" role="group" aria-label="Strength">
+    <button data-s="light" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#ic-light"/></svg>Lighter</button>
+    <button data-s="normal" aria-pressed="true"><svg class="i" aria-hidden="true"><use href="#ic-normal"/></svg>Normal</button>
+    <button data-s="strong" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#ic-strong"/></svg>Stronger</button>
+  </div>
+
+  <div class="spec">
+    <div class="row">
+      <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-grind"/></svg>Grind</span>
+      <input class="v" id="grind" aria-label="Grind setting">
+    </div>
+    <div class="row">
+      <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-temp"/></svg>Water</span>
+      <span class="v" id="temp">95&deg;C</span>
+    </div>
+    <div class="row">
+      <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-clock"/></svg><span id="timeKey">Takes</span></span>
+      <span class="v" id="totalTime">about 3:30</span>
+    </div>
+    <div class="row">
+      <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-scale"/></svg>Weighing</span>
+      <div class="toggle">
+        <button data-scale="on" aria-pressed="true"><svg class="i i-sm" aria-hidden="true"><use href="#ic-scale"/></svg>Scale</button>
+        <button data-scale="off" aria-pressed="false"><svg class="i i-sm" aria-hidden="true"><use href="#ic-spoon"/></svg>Spoons</button>
+      </div>
+    </div>
+    <div class="row hidden" id="flowRow">
+      <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-flow"/></svg>Basket flow</span>
+      <span class="v" id="flowVal">Half open</span>
+    </div>
+    <div class="row hidden" id="styleRow">
+      <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-serve"/></svg>Serve</span>
+      <div class="toggle">
+        <button data-style="rtd" aria-pressed="true">Ready to drink</button>
+        <button data-style="conc" aria-pressed="false">Concentrate</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" id="methodNote"></div>
+
+  <div id="restingCard" class="resting hidden">
+    <svg class="i i-lg" aria-hidden="true"><use href="#ic-fridge"/></svg>
+    <div>
+      <div class="when" id="readyWhen">&mdash;</div>
+      <div class="sub" id="readySub"></div>
+      <button id="cancelSteep">Discard this batch</button>
+    </div>
+  </div>
+
+  <button class="go" id="start">
+    <svg class="i" aria-hidden="true"><use href="#ic-play"/></svg><span id="startLabel">Start brewing</span>
+  </button>
+
+  <div class="spacer"></div>
+  <div class="foot" id="credit"></div>
+</div>
+
+<div class="brew" id="brewScreen">
+ <div class="brewinner">
+  <div class="brewtop">
+    <button id="exit"><svg class="i i-sm" aria-hidden="true"><use href="#ic-stop"/></svg>Stop</button>
+    <div class="clock"><svg class="i i-sm" aria-hidden="true"><use href="#ic-clock"/></svg><span id="clock">0:00</span></div>
+  </div>
+  <div class="stage">
+    <div class="stephead">
+      <svg class="i i-lg" id="sIcon" aria-hidden="true"><use href="#ic-drop"/></svg>
+      <div class="stepname" id="sName">Bloom</div>
+    </div>
+    <div class="target" id="sTarget">60<em>g</em></div>
+    <div class="stepnote" id="sNote"></div>
+    <div class="countdown" id="sCount"></div>
+    <div class="bar"><i id="sBar"></i></div>
+    <div class="upnext" id="sNext"></div>
+  </div>
+  <div class="brewfoot">
+    <button id="pause"><svg class="i i-sm" aria-hidden="true"><use href="#ic-pause"/></svg><span id="pauseLabel">Pause</span></button>
+    <button id="skip" class="primary"><svg class="i i-sm" aria-hidden="true"><use href="#ic-next"/></svg>Next step</button>
+  </div>
+ </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------------------------------------------------------------
+   Recipe sources
+   V60 and French press: James Hoffmann's published techniques.
+   Cold brew: Hoffmann's own posted recipe (75 g/L, fine grind, 12 h fridge).
+   Concentrate mode (1:8) is NOT his and is flagged as a guess in the UI.
+   Strength steps move the ratio by +/-10%, the SCA Golden Cup tolerance.
+   Verify any of this against the original source before trusting it.
+--------------------------------------------------------------- */
+var CREDIT_HOT = "V60 and French press: James Hoffmann's published methods. Strength range follows the SCA Golden Cup tolerance of 55 g/L \u00B110%. Check the originals before you rely on these numbers.";
+var CREDIT_MOCCA = "Flow settings, temperature and minimum batch from Technivorm's own manual and support pages. The bloom-and-stir technique follows Sample Coffee's published Moccamaster guide. Technivorm's older manual and its current support page disagree slightly on the cup thresholds \u2014 the app follows the current page.";
+var CREDIT_COLD = "Ratio and steep time from James Hoffmann's own posted cold brew recipe. Concentrate mode is not his \u2014 1:8 is a common starting point, so treat it as a guess and adjust to taste.";
+
+var R = {
+  v60:{
+    label:"V60", icon:"ic-v60", ratio:16.67, temp:"95\u00B0C", grind:"Medium-fine",
+    total:"about 3:30", defaultDose:30, timed:true, credit:CREDIT_HOT,
+    note:"<b>Hoffmann's V60.</b> Rinse the filter, level the bed, make a small well in the middle. Pour targets are cumulative \u2014 pour until the scale reads that number.",
+    steps:function(c,w){ return [
+      {name:"Bloom", icon:"ic-drop", target:Math.round(c*2), dur:45,
+       note:"Pour into the centre, then swirl until there are no dry grounds."},
+      {name:"First pour", icon:"ic-pour", target:Math.round(w*0.6), dur:30,
+       note:"Concentric circles, steady, over about 30 seconds."},
+      {name:"Second pour", icon:"ic-pour", target:Math.round(w), dur:30,
+       note:"Keep the cone full. Finish pouring by 1:45."},
+      {name:"Stir", icon:"ic-stir", target:null, dur:10,
+       note:"One stir clockwise, one anticlockwise."},
+      {name:"Swirl", icon:"ic-swirl", target:null, dur:10,
+       note:"Gentle swirl to settle the bed flat."},
+      {name:"Drawdown", icon:"ic-wait", target:null, dur:85,
+       note:"Leave it alone. Aim to finish around 3:30."}
+    ];}
+  },
+  press:{
+    label:"French press", icon:"ic-press", ratio:16.67, temp:"94\u00B0C", grind:"Medium",
+    total:"about 10 min", defaultDose:30, timed:true, credit:CREDIT_HOT,
+    note:"<b>Hoffmann's French press.</b> Medium grind, not coarse. The long settle and the shallow plunge are what keep the cup clean \u2014 don't press to the bottom.",
+    steps:function(c,w){ return [
+      {name:"Steep", icon:"ic-pour", target:Math.round(w), dur:240,
+       note:"Pour all the water in steadily. Then don't touch it."},
+      {name:"Break the crust", icon:"ic-stir", target:null, dur:60,
+       note:"Two or three slow stirs, then skim off the foam and floating grounds."},
+      {name:"Let it settle", icon:"ic-wait", target:null, dur:300,
+       note:"Fines sink to the bottom. The longer you wait, the cleaner the cup."},
+      {name:"Plunge to the surface", icon:"ic-plunge", target:null, dur:20,
+       note:"Rest the mesh on top of the liquid. Pour gently and stop before the sludge."}
+    ];}
+  },
+  mocca:{
+    label:"Moccamaster", icon:"ic-mocca", ratio:16, temp:"92\u201396\u00B0C (automatic)", grind:"Medium-coarse",
+    total:"about 6 min", defaultDose:50, timed:true, credit:CREDIT_MOCCA,
+    note:"<b>Moccamaster, bloomed.</b> Grounds in the filter, water in the tank, basket set to <b>closed</b>. The machine handles temperature on its own \u2014 the only things you control are the dose, the grind and the basket flow.",
+    steps:function(c,w){ return [
+      {name:"Bloom", icon:"ic-drop", target:null, dur:25,
+       note:"Switch on with the basket closed. Let it fill about halfway, then switch off."},
+      {name:"Stir", icon:"ic-stir", target:null, dur:20,
+       note:"Stir gently until every ground is wet. Don't tear the paper."},
+      {name:"Open the basket", icon:"ic-flow", target:null, dur:10,
+       note:"Set the flow to " + flowFor(w).toLowerCase() + ", then switch the machine back on."},
+      {name:"Brewing", icon:"ic-wait", target:null, dur:300,
+       note:"Four to six minutes. Leave it alone \u2014 but open the flow fully if the basket looks close to overflowing."},
+      {name:"Swirl and serve", icon:"ic-swirl", target:null, dur:15,
+       note:"Swirl the carafe to mix the layers before you pour."}
+    ];}
+  },
+  cold:{
+    label:"Cold brew", icon:"ic-cold", ratio:13.3, temp:"Room temperature", grind:"Fine (moka pot)",
+    total:"12 hours", defaultDose:75, timed:false, steepHours:12, credit:CREDIT_COLD,
+    note:"<b>Hoffmann's cold brew.</b> Ground fine, not coarse. Stir hard so nothing clumps, lid on, into the fridge. Decant off the top and stop before the sediment \u2014 no filtering needed."
+  }
+};
+
+var S = {
+  method:"v60", inputMode:"coffee", amount:30, strength:"normal",
+  scale:"on", coldStyle:"rtd", grind:{}, dose:{}, coldStart:null
+};
+
+function load(){
+  try{
+    var raw = localStorage.getItem("brew.v1");
+    if(raw){ var o = JSON.parse(raw); for(var k in o){ if(k in S) S[k] = o[k]; } }
+  }catch(e){}
+  if(!S.grind || typeof S.grind !== "object") S.grind = {};
+  if(!S.dose  || typeof S.dose  !== "object") S.dose  = {};
+}
+function save(){ try{ localStorage.setItem("brew.v1", JSON.stringify(S)); }catch(e){} }
+
+var MULT = {light:1.1, normal:1, strong:1/1.1};
+function ratio(){
+  var r = (S.method === "cold" && S.coldStyle === "conc") ? 8 : R[S.method].ratio;
+  return r * MULT[S.strength];
+}
+function coffee(){ return S.inputMode === "coffee" ? S.amount : S.amount / ratio(); }
+function water(){  return S.inputMode === "coffee" ? S.amount * ratio() : S.amount; }
+function fmt(n){ return n >= 100 ? Math.round(n) : Math.round(n*10)/10; }
+/* Technivorm: fully open for a full carafe (about 7 cups and up),
+   half open for 4-6 cups, which slows the drip for more contact time.
+   A Moccamaster "cup" is 125 ml on a 1.25 L carafe. */
+function flowFor(w){ return w >= 875 ? "Fully open" : "Half open"; }
+function mmss(sec){ sec = Math.max(0, Math.round(sec)); return Math.floor(sec/60) + ":" + String(sec%60).padStart(2,"0"); }
+
+var $ = function(id){ return document.getElementById(id); };
+function setIcon(el, id){ el.innerHTML = '<use href="#' + id + '"/>'; }
+function press(sel, attr, val){
+  document.querySelectorAll(sel).forEach(function(b){
+    b.setAttribute("aria-pressed", b.dataset[attr] === val ? "true" : "false");
+  });
+}
+
+function render(){
+  var m = R[S.method];
+
+  press(".methods button","m",S.method);
+  press(".doseswitch button","input",S.inputMode);
+  press(".strength button","s",S.strength);
+  press("[data-scale]","scale",S.scale);
+  press("[data-style]","style",S.coldStyle);
+
+  if(document.activeElement !== $("amount")) $("amount").value = fmt(S.amount);
+
+  var showingWater = S.inputMode === "coffee";
+  $("outLabel").textContent = showingWater ? "Water" : "Coffee";
+  setIcon($("outIcon"), showingWater ? "ic-drop" : "ic-bean");
+  $("outVal").textContent = fmt(showingWater ? water() : coffee());
+  $("ratioOut").textContent = "1:" + (Math.round(ratio()*10)/10);
+
+  $("grind").value = S.grind[S.method] || "";
+  $("grind").placeholder = m.grind;
+  $("temp").textContent = m.temp;
+  $("timeKey").textContent = m.timed ? "Takes" : "Steep";
+  $("totalTime").textContent = m.total;
+  $("methodNote").innerHTML = m.note;
+  $("credit").textContent = m.credit;
+  $("styleRow").classList.toggle("hidden", S.method !== "cold");
+  $("flowRow").classList.toggle("hidden", S.method !== "mocca");
+  if(S.method === "mocca") $("flowVal").textContent = flowFor(water());
+
+  var warn = "";
+  if(S.method === "mocca"){
+    var w = water();
+    if(w > 1250) warn = "That is more than a 1.25 L carafe holds. Split it into two brews.";
+    else if(w < 500) warn = "Technivorm suggests at least four cups in an 8\u201310 cup brewer \u2014 below about 500 ml the shower head struggles to wet the bed evenly, so the stir matters more.";
+    else warn = "Tank fills to roughly line " + Math.round(w/125) + ". Markings vary by model, so check yours.";
+  }
+  $("warning").classList.toggle("hidden", !warn);
+  $("warnText").textContent = warn;
+
+  if(S.scale === "off"){
+    $("estimate").classList.remove("hidden");
+    $("estText").textContent =
+      "About " + (Math.round(coffee()/5*2)/2) + " level tablespoons of grounds and " +
+      Math.round(water()) + " ml of water. Tablespoon weight shifts with grind and roast, so this is an estimate, not a measurement.";
+  }else{
+    $("estimate").classList.add("hidden");
+  }
+
+  var resting = S.method === "cold" && S.coldStart;
+  $("restingCard").classList.toggle("hidden", !resting);
+  if(resting) renderResting();
+  $("startLabel").textContent = m.timed ? "Start brewing" : (resting ? "Start another batch" : "Start the steep");
+}
+
+function renderResting(){
+  var ready = S.coldStart + R.cold.steepHours*3600*1000;
+  var left = ready - Date.now();
+  var d = new Date(ready);
+  var hh = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  if(left <= 0){
+    $("readyWhen").textContent = "Ready now";
+    $("readySub").textContent = "Decant it off the sediment and keep it cold.";
+  }else{
+    var sameDay = d.toDateString() === new Date().toDateString();
+    $("readyWhen").textContent = "Ready at " + hh;
+    $("readySub").textContent = (sameDay ? "Today" : "Tomorrow") + ", " +
+      Math.floor(left/3600000) + "h " + Math.floor(left%3600000/60000) + "m from now.";
+  }
+}
+
+/* ---------------- home events ---------------- */
+document.querySelectorAll(".methods button").forEach(function(b){
+  b.addEventListener("click", function(){
+    S.dose[S.method] = S.amount;
+    S.method = b.dataset.m;
+    S.inputMode = "coffee";
+    S.amount = S.dose[S.method] || R[S.method].defaultDose;
+    save(); render();
+  });
+});
+document.querySelectorAll(".doseswitch button").forEach(function(b){
+  b.addEventListener("click", function(){
+    var mode = b.dataset.input;
+    if(mode === S.inputMode) return;
+    S.amount = Math.round((mode === "coffee" ? coffee() : water())*10)/10;
+    S.inputMode = mode;
+    save(); render();
+  });
+});
+document.querySelectorAll(".strength button").forEach(function(b){
+  b.addEventListener("click", function(){ S.strength = b.dataset.s; save(); render(); });
+});
+document.querySelectorAll("[data-scale]").forEach(function(b){
+  b.addEventListener("click", function(){ S.scale = b.dataset.scale; save(); render(); });
+});
+document.querySelectorAll("[data-style]").forEach(function(b){
+  b.addEventListener("click", function(){ S.coldStyle = b.dataset.style; save(); render(); });
+});
+$("amount").addEventListener("input", function(){
+  var v = parseFloat(this.value);
+  if(!isNaN(v) && v > 0){ S.amount = v; save(); render(); }
+});
+$("amount").addEventListener("blur", render);
+function bump(dir){
+  var step = S.inputMode === "coffee" ? 1 : 10;
+  S.amount = Math.max(1, Math.round((S.amount + dir*step)*10)/10);
+  save(); render();
+}
+$("up").addEventListener("click", function(){ bump(1); });
+$("down").addEventListener("click", function(){ bump(-1); });
+$("grind").addEventListener("change", function(){ S.grind[S.method] = this.value.trim(); save(); });
+$("cancelSteep").addEventListener("click", function(){ S.coldStart = null; save(); render(); });
+
+/* ---------------- brew timer ---------------- */
+var T = {steps:[], total:0, start:0, paused:false, pausedAt:0, timer:null, lock:null, last:-1, finished:false};
+
+function beep(){
+  try{
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    var ctx = new Ctx(), o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = "sine"; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+    o.start(); o.stop(ctx.currentTime + 0.32);
+    setTimeout(function(){ try{ ctx.close(); }catch(e){} }, 600);
+  }catch(e){}
+}
+function keepAwake(){
+  try{ if("wakeLock" in navigator) navigator.wakeLock.request("screen").then(function(l){ T.lock = l; }).catch(function(){}); }catch(e){}
+}
+function releaseAwake(){ try{ if(T.lock){ T.lock.release(); T.lock = null; } }catch(e){} }
+function elapsed(){ return (T.paused ? T.pausedAt : Date.now() - T.start)/1000; }
+
+function startBrew(){
+  var m = R[S.method];
+  if(!m.timed){ S.coldStart = Date.now(); save(); render(); return; }
+
+  T.steps = m.steps(coffee(), water());
+  var acc = 0;
+  T.steps.forEach(function(s){ s.at = acc; acc += s.dur; });
+  T.total = acc;
+  T.start = Date.now(); T.paused = false; T.last = -1; T.finished = false;
+  $("pauseLabel").textContent = "Pause";
+  $("brewScreen").classList.add("on");
+  keepAwake(); beep();
+  if(T.timer) clearInterval(T.timer);
+  T.timer = setInterval(tick, 120);
+  tick();
+}
+
+function tick(){
+  var e = elapsed(), idx = 0;
+  for(var i = 0; i < T.steps.length; i++){ if(e >= T.steps[i].at) idx = i; }
+  var s = T.steps[idx];
+
+  if(idx !== T.last){
+    if(T.last !== -1) beep();
+    T.last = idx;
+    $("sName").textContent = s.name;
+    $("sNote").textContent = s.note;
+    setIcon($("sIcon"), s.icon);
+    $("sTarget").innerHTML = s.target !== null ? (s.target + "<em>g</em>") : "&mdash;";
+    var n = T.steps[idx+1];
+    $("sNext").innerHTML = n
+      ? '<svg class="i i-sm" aria-hidden="true"><use href="#ic-next"/></svg>' + n.name + (n.target !== null ? " to " + n.target + " g" : "")
+      : '<svg class="i i-sm" aria-hidden="true"><use href="#ic-done"/></svg>Last step';
+  }
+
+  $("clock").textContent = mmss(e);
+  var into = e - s.at;
+  $("sCount").textContent = e >= T.total ? "Brew complete" : (mmss(s.dur - into) + " left in this step");
+  $("sBar").style.width = Math.min(100, Math.max(0, into/s.dur*100)) + "%";
+
+  if(e >= T.total && !T.finished){
+    T.finished = true;
+    setIcon($("sIcon"), "ic-done");
+    $("sName").textContent = "Done";
+    beep();
+  }
+}
+
+function stopBrew(){
+  if(T.timer){ clearInterval(T.timer); T.timer = null; }
+  $("brewScreen").classList.remove("on");
+  releaseAwake();
+}
+
+$("start").addEventListener("click", startBrew);
+$("exit").addEventListener("click", stopBrew);
+$("pause").addEventListener("click", function(){
+  if(T.paused){
+    T.start = Date.now() - T.pausedAt; T.paused = false;
+    $("pauseLabel").textContent = "Pause"; keepAwake();
+  }else{
+    T.pausedAt = Date.now() - T.start; T.paused = true;
+    $("pauseLabel").textContent = "Resume"; releaseAwake();
+  }
+});
+$("skip").addEventListener("click", function(){
+  var e = elapsed(), idx = 0;
+  for(var i = 0; i < T.steps.length; i++){ if(e >= T.steps[i].at) idx = i; }
+  var n = T.steps[idx+1];
+  if(!n) return;
+  var shift = (n.at - e)*1000;
+  T.start -= shift;
+  if(T.paused) T.pausedAt += shift;
+  tick();
+});
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "visible" && $("brewScreen").classList.contains("on") && !T.paused) keepAwake();
+});
+document.addEventListener("keydown", function(ev){
+  if(!$("brewScreen").classList.contains("on")) return;
+  if(ev.key === "Escape") stopBrew();
+  if(ev.key === " "){ ev.preventDefault(); $("pause").click(); }
+});
+
+/* ---------------- boot ---------------- */
+load();
+render();
+setInterval(function(){ if(S.method === "cold" && S.coldStart) renderResting(); }, 30000);
+
+if("serviceWorker" in navigator && location.protocol !== "file:"){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
