@@ -441,9 +441,11 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
    Verify any of this against the original source before trusting it.
 --------------------------------------------------------------- */
 function src(url, title){ return '<a href="' + url + '" target="_blank" rel="noopener">' + title + '</a>'; }
-var CREDIT_HOT = "V60: James Hoffmann, " + src("https://www.youtube.com/watch?v=AI4ynXzkSQo", "The Ultimate V60 Technique") + " (2019). French press: Hoffmann, " + src("https://www.youtube.com/watch?v=st571DYYTR8", "The Ultimate French Press Technique") + " (2016). Strength steps move the dose 10% either way, borrowing the SCA Golden Cup\u2019s \u00B110% tolerance. Check the originals before you rely on these numbers.";
-var CREDIT_MOCCA = "The 1:16 ratio, grind and bloom-and-stir steps follow Sample Coffee\u2019s " + src("https://samplecoffee.com.au/brewguides/moccamaster", "Moccamaster brew guide") + " (Technivorm itself " + src("https://support.moccamaster.com/hc/en-us/articles/1500009389881-How-much-coffee-should-I-use-in-my-Moccamaster", "suggests about 55 g/L") + "). Flow settings, temperature and minimum batch are Technivorm\u2019s, from its manual and " + src("https://support.moccamaster.com/hc/en-us/articles/1500009415301-What-do-the-settings-on-the-manual-adjust-drip-stop-brew-basket-control", "support pages") + ". Sample opens the basket fully after the stir; the app uses Technivorm\u2019s half-open setting for four to six cups instead.";
-var CREDIT_COLD = "Ratio, grind and steep time: James Hoffmann, " + src("https://www.youtube.com/watch?v=AB0QLjroFss", "Everything I Learned About Cold Brew Coffee") + " (2025). Concentrate mode is not his \u2014 1:8 is a common starting point, so treat it as a guess and adjust to taste.";
+/* The strength buttons apply to every method, so every credit carries this. */
+var CREDIT_STRENGTH = " Strength steps move the dose 10% either way, borrowing the SCA Golden Cup\u2019s \u00B110% tolerance.";
+var CREDIT_HOT = "V60: James Hoffmann, " + src("https://www.youtube.com/watch?v=AI4ynXzkSQo", "The Ultimate V60 Technique") + " (2019). French press: Hoffmann, " + src("https://www.youtube.com/watch?v=st571DYYTR8", "The Ultimate French Press Technique") + " (2016)." + CREDIT_STRENGTH + " Check the originals before you rely on these numbers.";
+var CREDIT_MOCCA = "The 1:16 ratio, grind and bloom-and-stir steps follow Sample Coffee\u2019s " + src("https://samplecoffee.com.au/brewguides/moccamaster", "Moccamaster brew guide") + " (Technivorm itself " + src("https://support.moccamaster.com/hc/en-us/articles/1500009389881-How-much-coffee-should-I-use-in-my-Moccamaster", "suggests about 55 g/L") + "). Flow settings, temperature and minimum batch are Technivorm\u2019s, from its manual and " + src("https://support.moccamaster.com/hc/en-us/articles/1500009415301-What-do-the-settings-on-the-manual-adjust-drip-stop-brew-basket-control", "support pages") + ". Sample opens the basket fully after the stir; the app uses Technivorm\u2019s half-open setting for four to six cups instead. Technivorm\u2019s older manual and its current support page disagree slightly on the cup thresholds \u2014 the app follows the current page." + CREDIT_STRENGTH;
+var CREDIT_COLD = "Ratio, grind and steep time: James Hoffmann, " + src("https://www.youtube.com/watch?v=AB0QLjroFss", "Everything I Learned About Cold Brew Coffee") + " (2025). Concentrate mode is not his \u2014 1:8 is a common starting point, so treat it as a guess and adjust to taste." + CREDIT_STRENGTH;
 
 var R = {
   v60:{
@@ -466,7 +468,7 @@ var R = {
     ];}
   },
   press:{
-    label:"French press", icon:"ic-press", ratio:16.67, temp:"Freshly boiled", grind:"Medium",
+    label:"French press", icon:"ic-press", ratio:16.67, temp:"Boiled", grind:"Medium",
     total:"about 10 min", defaultDose:30, timed:true, credit:CREDIT_HOT,
     note:"<b>Hoffmann's French press.</b> Medium grind, not coarse. The long settle and the shallow plunge are what keep the cup clean \u2014 don't press to the bottom.",
     steps:function(c,w){ return [
@@ -506,13 +508,19 @@ var R = {
 
 var S = {
   method:"v60", inputMode:"coffee", amount:30, strength:"normal",
-  scale:"on", coldStyle:"rtd", grind:{}, dose:{}, coldStart:null
+  scale:"on", coldStyle:"rtd", grind:{}, dose:{}, coldStart:null, doseV:2
 };
 
 function load(){
   try{
     var raw = localStorage.getItem("brew.v1");
-    if(raw){ var o = JSON.parse(raw); for(var k in o){ if(k in S) S[k] = o[k]; } }
+    if(raw){
+      var o = JSON.parse(raw);
+      for(var k in o){ if(k in S) S[k] = o[k]; }
+      /* Builds before doseV 2 could save a water amount as a method's coffee
+         dose. Forget remembered doses once rather than trust them. */
+      if(o.doseV !== 2){ S.dose = {}; S.doseV = 2; }
+    }
   }catch(e){}
   if(!S.grind || typeof S.grind !== "object") S.grind = {};
   if(!S.dose  || typeof S.dose  !== "object") S.dose  = {};
@@ -615,7 +623,13 @@ function render(){
 function steepLeft(){ return S.coldStart ? S.coldStart + R.cold.steepHours*3600*1000 - Date.now() : 0; }
 function restarting(){ return !R[S.method].timed && !!S.coldStart && steepLeft() > 0; }
 function setStartLabel(){
-  if($("start").dataset.armed !== undefined) return;
+  /* Keep "Tap again to restart" only while there is still a steep to restart;
+     switching method or discarding cancels the pending confirm. */
+  var b = $("start");
+  if(b.dataset.armed !== undefined){
+    if(restarting()) return;
+    disarm(b, $("startLabel"));
+  }
   var m = R[S.method];
   $("startLabel").textContent = m.timed ? "Start brewing"
     : !S.coldStart ? "Start the steep"

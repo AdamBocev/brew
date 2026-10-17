@@ -1,5 +1,5 @@
 /* Bump CACHE on every deploy so clients pick up the new build. */
-const CACHE = "brew-v2";
+const CACHE = "brew-v3";
 const SHELL = [
   "./",
   "./index.html",

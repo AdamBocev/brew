@@ -28,7 +28,8 @@ named source. Keep it that way.
 
 - **V60, French press** — James Hoffmann's published techniques. He gives no
   fixed water temperature, so the Water row uses his words ("As hot as
-  possible", "Freshly boiled"). Don't put a number back without a source.
+  possible" for the V60, "Boiled" from his "boil your water" for the press).
+  Don't put a number back without a source.
 - **Cold brew** — Hoffmann's own posted recipe: 75 g/L, fine grind, 12 h fridge.
 - **Moccamaster** — flow settings, temperature and minimum batch from
   Technivorm's manual and support pages; bloom-and-stir technique, grind and

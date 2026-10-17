@@ -30,16 +30,17 @@ while your hands are busy.
 V60 and French press follow **James Hoffmann's published techniques** (*The
 Ultimate V60 Technique*, 2019; *The Ultimate French Press Technique*, 2016). He
 gives no fixed water temperature for either, so the app uses his wording: "as hot
-as possible" for the V60, "freshly boiled" for the press. Cold brew uses the ratio
-and steep time from **his own posted cold brew recipe** (*Everything I Learned
-About Cold Brew Coffee*, 2025: 75 g/L, fine grind, 12 hours in the fridge).
+as possible" for the V60, "boiled" (from his "boil your water") for the press.
+Cold brew uses the ratio and steep time from **his own posted cold brew recipe**
+(*Everything I Learned About Cold Brew Coffee*, 2025: 75 g/L, fine grind, 12 hours
+in the fridge).
 
 Moccamaster takes its flow settings, brew temperature and minimum batch size from
 **Technivorm's own manual and support pages**, and the ratio, grind and
 bloom-and-stir technique from **Sample Coffee's published Moccamaster guide**
-(1:16, medium-coarse). Technivorm's own suggestion is stronger, about 55 g/L.
-Sample opens the basket fully after the stir; the app uses Technivorm's half-open
-setting for four to six cups instead.
+(1:16, medium-coarse). Technivorm's own suggestion is weaker, about 55 g/L
+(roughly 1:18). Sample opens the basket fully after the stir; the app uses
+Technivorm's half-open setting for four to six cups instead.
 
 The footer under each method links to these sources.
 
