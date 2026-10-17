@@ -13,24 +13,35 @@ while your hands are busy.
   one follows.
 - **Cumulative pour targets.** The timer shows the number your scale should read,
   not how much more to add.
-- **Strength adjustment.** Lighter / normal / stronger moves the ratio by ±10%,
-  which is the SCA Golden Cup tolerance rather than an arbitrary step.
+- **Strength adjustment.** Lighter / normal / stronger moves the dose 10% either
+  way from the recipe, borrowing the SCA Golden Cup's ±10% tolerance rather than
+  an arbitrary step.
 - **Scale optional.** A spoons mode gives a volumetric estimate, clearly labelled
   as an estimate.
 - **Cold brew has no timer.** Starting a steep records it and the home screen
   then shows when it is ready, surviving a close and reopen.
 - **Per-method grind notes.** Your own grinder clicks, saved locally.
-- Screen stays awake during a brew, with an audio cue on each step change.
+- Screen stays awake during a brew. Each step change beeps, flashes the screen
+  and, on Android, vibrates. On iPhone the beep is muted when the ringer switch
+  is on silent, so the flash is the cue you can rely on.
 
 ## Recipe sources, and what to trust
 
-V60 and French press follow **James Hoffmann's published techniques**. Cold brew
-uses the ratio and steep time from **his own posted cold brew recipe** (75 g/L,
-fine grind, 12 hours in the fridge).
+V60 and French press follow **James Hoffmann's published techniques** (*The
+Ultimate V60 Technique*, 2019; *The Ultimate French Press Technique*, 2016). He
+gives no fixed water temperature for either, so the app uses his wording: "as hot
+as possible" for the V60, "freshly boiled" for the press. Cold brew uses the ratio
+and steep time from **his own posted cold brew recipe** (*Everything I Learned
+About Cold Brew Coffee*, 2025: 75 g/L, fine grind, 12 hours in the fridge).
 
 Moccamaster takes its flow settings, brew temperature and minimum batch size from
-**Technivorm's own manual and support pages**, and the bloom-and-stir technique
-from **Sample Coffee's published Moccamaster guide** (1:16, medium-coarse).
+**Technivorm's own manual and support pages**, and the ratio, grind and
+bloom-and-stir technique from **Sample Coffee's published Moccamaster guide**
+(1:16, medium-coarse). Technivorm's own suggestion is stronger, about 55 g/L.
+Sample opens the basket fully after the stir; the app uses Technivorm's half-open
+setting for four to six cups instead.
+
+The footer under each method links to these sources.
 
 Three things are deliberately flagged in the app rather than presented as fact:
 

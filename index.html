@@ -355,7 +355,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
     </div>
     <div class="row">
       <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-temp"/></svg>Water</span>
-      <span class="v" id="temp">95&deg;C</span>
+      <span class="v" id="temp">As hot as possible</span>
     </div>
     <div class="row">
       <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-clock"/></svg><span id="timeKey">Takes</span></span>
@@ -429,19 +429,25 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 
 /* ---------------------------------------------------------------
    Recipe sources
-   V60 and French press: James Hoffmann's published techniques.
+   V60 and French press: James Hoffmann's published techniques. He gives no
+   fixed water temperature for either ("as hot as possible" for the V60,
+   "boil your water" for the press), so the app uses his words, not a number.
    Cold brew: Hoffmann's own posted recipe (75 g/L, fine grind, 12 h fridge).
    Concentrate mode (1:8) is NOT his and is flagged as a guess in the UI.
-   Strength steps move the ratio by +/-10%, the SCA Golden Cup tolerance.
+   Moccamaster: 1:16, grind and the bloom-and-stir steps from Sample Coffee's
+   guide; flow settings, temperature and minimum batch from Technivorm.
+   Strength steps move the dose 10% either way from each recipe, borrowing the
+   SCA Golden Cup's +/-10% tolerance. They are not held inside SCA's 55 g/L band.
    Verify any of this against the original source before trusting it.
 --------------------------------------------------------------- */
-var CREDIT_HOT = "V60 and French press: James Hoffmann's published methods. Strength range follows the SCA Golden Cup tolerance of 55 g/L \u00B110%. Check the originals before you rely on these numbers.";
-var CREDIT_MOCCA = "Flow settings, temperature and minimum batch from Technivorm's own manual and support pages. The bloom-and-stir technique follows Sample Coffee's published Moccamaster guide. Technivorm's older manual and its current support page disagree slightly on the cup thresholds \u2014 the app follows the current page.";
-var CREDIT_COLD = "Ratio and steep time from James Hoffmann's own posted cold brew recipe. Concentrate mode is not his \u2014 1:8 is a common starting point, so treat it as a guess and adjust to taste.";
+function src(url, title){ return '<a href="' + url + '" target="_blank" rel="noopener">' + title + '</a>'; }
+var CREDIT_HOT = "V60: James Hoffmann, " + src("https://www.youtube.com/watch?v=AI4ynXzkSQo", "The Ultimate V60 Technique") + " (2019). French press: Hoffmann, " + src("https://www.youtube.com/watch?v=st571DYYTR8", "The Ultimate French Press Technique") + " (2016). Strength steps move the dose 10% either way, borrowing the SCA Golden Cup\u2019s \u00B110% tolerance. Check the originals before you rely on these numbers.";
+var CREDIT_MOCCA = "The 1:16 ratio, grind and bloom-and-stir steps follow Sample Coffee\u2019s " + src("https://samplecoffee.com.au/brewguides/moccamaster", "Moccamaster brew guide") + " (Technivorm itself " + src("https://support.moccamaster.com/hc/en-us/articles/1500009389881-How-much-coffee-should-I-use-in-my-Moccamaster", "suggests about 55 g/L") + "). Flow settings, temperature and minimum batch are Technivorm\u2019s, from its manual and " + src("https://support.moccamaster.com/hc/en-us/articles/1500009415301-What-do-the-settings-on-the-manual-adjust-drip-stop-brew-basket-control", "support pages") + ". Sample opens the basket fully after the stir; the app uses Technivorm\u2019s half-open setting for four to six cups instead.";
+var CREDIT_COLD = "Ratio, grind and steep time: James Hoffmann, " + src("https://www.youtube.com/watch?v=AB0QLjroFss", "Everything I Learned About Cold Brew Coffee") + " (2025). Concentrate mode is not his \u2014 1:8 is a common starting point, so treat it as a guess and adjust to taste.";
 
 var R = {
   v60:{
-    label:"V60", icon:"ic-v60", ratio:16.67, temp:"95\u00B0C", grind:"Medium-fine",
+    label:"V60", icon:"ic-v60", ratio:16.67, temp:"As hot as possible", grind:"Medium-fine",
     total:"about 3:30", defaultDose:30, timed:true, credit:CREDIT_HOT,
     note:"<b>Hoffmann's V60.</b> Rinse the filter, level the bed, make a small well in the middle. Pour targets are cumulative \u2014 pour until the scale reads that number.",
     steps:function(c,w){ return [
@@ -450,7 +456,7 @@ var R = {
       {name:"First pour", icon:"ic-pour", target:Math.round(w*0.6), dur:30,
        note:"Concentric circles, steady, over about 30 seconds."},
       {name:"Second pour", icon:"ic-pour", target:Math.round(w), dur:30,
-       note:"Keep the cone full. Finish pouring by 1:45."},
+       note:"Pour a little slower and keep the cone topped up. Finish pouring by 1:45."},
       {name:"Stir", icon:"ic-stir", target:null, dur:10,
        note:"One stir clockwise, one anticlockwise."},
       {name:"Swirl", icon:"ic-swirl", target:null, dur:10,
@@ -460,7 +466,7 @@ var R = {
     ];}
   },
   press:{
-    label:"French press", icon:"ic-press", ratio:16.67, temp:"94\u00B0C", grind:"Medium",
+    label:"French press", icon:"ic-press", ratio:16.67, temp:"Freshly boiled", grind:"Medium",
     total:"about 10 min", defaultDose:30, timed:true, credit:CREDIT_HOT,
     note:"<b>Hoffmann's French press.</b> Medium grind, not coarse. The long settle and the shallow plunge are what keep the cup clean \u2014 don't press to the bottom.",
     steps:function(c,w){ return [
@@ -492,7 +498,7 @@ var R = {
     ];}
   },
   cold:{
-    label:"Cold brew", icon:"ic-cold", ratio:13.3, temp:"Room temperature", grind:"Fine (moka pot)",
+    label:"Cold brew", icon:"ic-cold", ratio:1000/75, temp:"Room temperature", grind:"Fine (moka pot)",
     total:"12 hours", defaultDose:75, timed:false, steepHours:12, credit:CREDIT_COLD,
     note:"<b>Hoffmann's cold brew.</b> Ground fine, not coarse. Stir hard so nothing clumps, lid on, into the fridge. Decant off the top and stop before the sediment \u2014 no filtering needed."
   }
@@ -513,7 +519,9 @@ function load(){
 }
 function save(){ try{ localStorage.setItem("brew.v1", JSON.stringify(S)); }catch(e){} }
 
-var MULT = {light:1.1, normal:1, strong:1/1.1};
+/* Multipliers on the water:coffee ratio. Dividing by 0.9 and 1.1 moves the
+   dose (g of coffee per litre) by exactly -10% and +10%. */
+var MULT = {light:1/0.9, normal:1, strong:1/1.1};
 function ratio(){
   var r = (S.method === "cold" && S.coldStyle === "conc") ? 8 : R[S.method].ratio;
   return r * MULT[S.strength];
@@ -521,9 +529,14 @@ function ratio(){
 function coffee(){ return S.inputMode === "coffee" ? S.amount : S.amount / ratio(); }
 function water(){  return S.inputMode === "coffee" ? S.amount * ratio() : S.amount; }
 function fmt(n){ return n >= 100 ? Math.round(n) : Math.round(n*10)/10; }
-/* Technivorm: fully open for a full carafe (about 7 cups and up),
-   half open for 4-6 cups, which slows the drip for more contact time.
-   A Moccamaster "cup" is 125 ml on a 1.25 L carafe. */
+/* Technivorm's support page: fully open for seven cups up to a full carafe,
+   partially open for four to six, which slows the drip for more contact time.
+   Sample Coffee's guide sets the basket fully open after the bloom-and-stir
+   at every batch size; the app follows Technivorm here because the flow
+   setting is Technivorm's call, and says so in CREDIT_MOCCA.
+   A Moccamaster "cup" is 125 ml on a 1.25 L carafe: Technivorm's manual lists
+   1/2 L as 4 cups and 1.25 L as 10, and Sample's table puts 500 ml at line 4
+   and 1 L at line 8. Tank markings still vary by model. */
 function flowFor(w){ return w >= 875 ? "Fully open" : "Half open"; }
 /* Whole lines only when the water is within 10 ml above one, so the tank hint
    never says "line 7" while the flow row still says half open. */
@@ -564,7 +577,7 @@ function render(){
   $("timeKey").textContent = m.timed ? "Takes" : "Steep";
   $("totalTime").textContent = m.total;
   $("methodNote").innerHTML = m.note;
-  $("credit").textContent = m.credit;
+  $("credit").innerHTML = m.credit;
   $("styleRow").classList.toggle("hidden", S.method !== "cold");
   $("flowRow").classList.toggle("hidden", S.method !== "mocca");
   if(S.method === "mocca") $("flowVal").textContent = flowFor(Math.round(water()));
@@ -573,8 +586,11 @@ function render(){
   if(S.method === "mocca"){
     var w = Math.round(water());
     if(w > 1250) warn = "That is more than a 1.25 L carafe holds. Split it into two brews.";
-    else if(w < 500) warn = "Technivorm suggests at least four cups in an 8\u201310 cup brewer \u2014 below about 500 ml the shower head struggles to wet the bed evenly, so the stir matters more.";
+    else if(w < 500) warn = "Technivorm recommends brewing at least four cups (about 500 ml) in an 8\u201310 cup brewer.";
     else warn = "Tank fills to " + tankLine(w) + ". Markings vary by model, so check yours.";
+  }
+  if(S.method === "cold" && S.coldStyle === "conc"){
+    warn = "1:8 is a common starting point for concentrate, not Hoffmann\u2019s \u2014 his recipe is ready to drink. Treat it as a guess.";
   }
   $("warning").classList.toggle("hidden", !warn);
   $("warnText").textContent = warn;
@@ -583,7 +599,7 @@ function render(){
     $("estimate").classList.remove("hidden");
     $("estText").textContent =
       "About " + (Math.round(coffee()/5*2)/2) + " level tablespoons of grounds and " +
-      Math.round(water()) + " ml of water. Tablespoon weight shifts with grind and roast, so this is an estimate, not a measurement.";
+      Math.round(water()) + " ml of water. This assumes roughly 5 g per level tablespoon, a guess that shifts with grind and roast.";
   }else{
     $("estimate").classList.add("hidden");
   }

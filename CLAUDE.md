@@ -26,12 +26,21 @@ Every read must survive the key being absent.
 Every ratio, temperature, grind description and timing in this app traces to a
 named source. Keep it that way.
 
-- **V60, French press** — James Hoffmann's published techniques.
+- **V60, French press** — James Hoffmann's published techniques. He gives no
+  fixed water temperature, so the Water row uses his words ("As hot as
+  possible", "Freshly boiled"). Don't put a number back without a source.
 - **Cold brew** — Hoffmann's own posted recipe: 75 g/L, fine grind, 12 h fridge.
 - **Moccamaster** — flow settings, temperature and minimum batch from
-  Technivorm's manual and support pages; bloom-and-stir technique and the 1:16
-  ratio from Sample Coffee's published guide.
-- **Strength steps (±10%)** — the SCA Golden Cup tolerance, 55 g/L ±10%.
+  Technivorm's manual and support pages; bloom-and-stir technique, grind and
+  the 1:16 ratio from Sample Coffee's published guide. Sample opens the basket
+  fully after the stir; the app deliberately uses Technivorm's half-open setting
+  for 4–6 cups instead, and the credit says so.
+- **Strength steps** — move the dose (g/L) exactly 10% either way from each
+  recipe, borrowing the SCA Golden Cup's ±10% tolerance. They are not held
+  inside SCA's 55 g/L band, and the credit must not claim they are.
+
+The footer credit under each method names and links its sources. Keep the
+links working when you change a recipe.
 
 Three numbers in the app are explicitly *not* authoritative, and each is labelled
 as a guess in the UI. Do not quietly promote them to fact:
