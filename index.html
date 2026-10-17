@@ -153,7 +153,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 .resting .i-lg{color:var(--signal);width:40px;height:40px}
 .resting .when{font-size:28px;font-weight:600;letter-spacing:-.035em;line-height:1.15}
 .resting .sub{font-size:13px;color:var(--muted);margin-top:3px}
-.resting button{margin-top:11px;font-size:13px;font-weight:600;color:var(--signal);padding:0}
+.resting button{margin-top:4px;font-size:13px;font-weight:600;color:var(--signal);padding:12px 14px 12px 0;min-height:44px}
 .hidden{display:none !important}
 
 /* ---------- brew screen ---------- */
@@ -163,9 +163,11 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
   padding:calc(14px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px));
 }
 .brew.on{display:flex}
+.brew.flash{background:var(--line)}
 .brewinner{max-width:430px;margin:0 auto;width:100%;flex:1;display:flex;flex-direction:column}
 .brewtop{display:flex;align-items:center;justify-content:space-between}
-.brewtop button{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--muted);padding:6px 0}
+.brewtop button{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--muted);padding:10px 14px 10px 0;min-height:44px}
+.brewtop button[data-armed]{color:var(--signal)}
 .clock{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600;color:var(--muted)}
 .stage{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:2px}
 .stephead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
@@ -186,6 +188,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 }
 .brewfoot button.primary{background:var(--signal);color:#1C1511;box-shadow:none}
 :root[data-theme="light"] .brewfoot button.primary{color:#FFF8EE}
+.brewfoot button:disabled{opacity:.4;cursor:default}
 
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
 @media (max-height:640px){
@@ -400,7 +403,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 <div class="brew" id="brewScreen">
  <div class="brewinner">
   <div class="brewtop">
-    <button id="exit"><svg class="i i-sm" aria-hidden="true"><use href="#ic-stop"/></svg>Stop</button>
+    <button id="exit"><svg class="i i-sm" aria-hidden="true"><use href="#ic-stop"/></svg><span id="exitLabel">Stop</span></button>
     <div class="clock"><svg class="i i-sm" aria-hidden="true"><use href="#ic-clock"/></svg><span id="clock">0:00</span></div>
   </div>
   <div class="stage">
@@ -481,7 +484,7 @@ var R = {
       {name:"Stir", icon:"ic-stir", target:null, dur:20,
        note:"Stir gently until every ground is wet. Don't tear the paper."},
       {name:"Open the basket", icon:"ic-flow", target:null, dur:10,
-       note:"Set the flow to " + flowFor(w).toLowerCase() + ", then switch the machine back on."},
+       note:"Set the flow to " + flowFor(Math.round(w)).toLowerCase() + ", then switch the machine back on."},
       {name:"Brewing", icon:"ic-wait", target:null, dur:300,
        note:"Four to six minutes. Leave it alone \u2014 but open the flow fully if the basket looks close to overflowing."},
       {name:"Swirl and serve", icon:"ic-swirl", target:null, dur:15,
@@ -522,6 +525,12 @@ function fmt(n){ return n >= 100 ? Math.round(n) : Math.round(n*10)/10; }
    half open for 4-6 cups, which slows the drip for more contact time.
    A Moccamaster "cup" is 125 ml on a 1.25 L carafe. */
 function flowFor(w){ return w >= 875 ? "Fully open" : "Half open"; }
+/* Whole lines only when the water is within 10 ml above one, so the tank hint
+   never says "line 7" while the flow row still says half open. */
+function tankLine(ml){
+  var line = ml/125, lo = Math.floor(line);
+  return line - lo < 0.08 ? "roughly line " + lo : "between lines " + lo + " and " + (lo+1);
+}
 function mmss(sec){ sec = Math.max(0, Math.round(sec)); return Math.floor(sec/60) + ":" + String(sec%60).padStart(2,"0"); }
 
 var $ = function(id){ return document.getElementById(id); };
@@ -558,14 +567,14 @@ function render(){
   $("credit").textContent = m.credit;
   $("styleRow").classList.toggle("hidden", S.method !== "cold");
   $("flowRow").classList.toggle("hidden", S.method !== "mocca");
-  if(S.method === "mocca") $("flowVal").textContent = flowFor(water());
+  if(S.method === "mocca") $("flowVal").textContent = flowFor(Math.round(water()));
 
   var warn = "";
   if(S.method === "mocca"){
-    var w = water();
+    var w = Math.round(water());
     if(w > 1250) warn = "That is more than a 1.25 L carafe holds. Split it into two brews.";
     else if(w < 500) warn = "Technivorm suggests at least four cups in an 8\u201310 cup brewer \u2014 below about 500 ml the shower head struggles to wet the bed evenly, so the stir matters more.";
-    else warn = "Tank fills to roughly line " + Math.round(w/125) + ". Markings vary by model, so check yours.";
+    else warn = "Tank fills to " + tankLine(w) + ". Markings vary by model, so check yours.";
   }
   $("warning").classList.toggle("hidden", !warn);
   $("warnText").textContent = warn;
@@ -582,12 +591,24 @@ function render(){
   var resting = S.method === "cold" && S.coldStart;
   $("restingCard").classList.toggle("hidden", !resting);
   if(resting) renderResting();
-  $("startLabel").textContent = m.timed ? "Start brewing" : (resting ? "Start another batch" : "Start the steep");
+  setStartLabel();
+}
+
+/* While a steep is still running there is only one batch to track, so the
+   button says it restarts it rather than promising a second batch. */
+function steepLeft(){ return S.coldStart ? S.coldStart + R.cold.steepHours*3600*1000 - Date.now() : 0; }
+function restarting(){ return !R[S.method].timed && !!S.coldStart && steepLeft() > 0; }
+function setStartLabel(){
+  if($("start").dataset.armed !== undefined) return;
+  var m = R[S.method];
+  $("startLabel").textContent = m.timed ? "Start brewing"
+    : !S.coldStart ? "Start the steep"
+    : restarting() ? "Restart the steep" : "Start another batch";
 }
 
 function renderResting(){
   var ready = S.coldStart + R.cold.steepHours*3600*1000;
-  var left = ready - Date.now();
+  var left = steepLeft();
   var d = new Date(ready);
   var hh = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
   if(left <= 0){
@@ -604,7 +625,7 @@ function renderResting(){
 /* ---------------- home events ---------------- */
 document.querySelectorAll(".methods button").forEach(function(b){
   b.addEventListener("click", function(){
-    S.dose[S.method] = S.amount;
+    S.dose[S.method] = Math.round(coffee()*10)/10;
     S.method = b.dataset.m;
     S.inputMode = "coffee";
     S.amount = S.dose[S.method] || R[S.method].defaultDose;
@@ -642,27 +663,80 @@ function bump(dir){
 $("up").addEventListener("click", function(){ bump(1); });
 $("down").addEventListener("click", function(){ bump(-1); });
 $("grind").addEventListener("change", function(){ S.grind[S.method] = this.value.trim(); save(); });
-$("cancelSteep").addEventListener("click", function(){ S.coldStart = null; save(); render(); });
+$("cancelSteep").addEventListener("click", function(){
+  if(!confirmTap(this, this, "Tap again to discard")) return;
+  S.coldStart = null; save(); render();
+});
+
+/* Two-tap confirm for actions that can't be undone: the first tap swaps the
+   label, a second tap within 3 s goes ahead. No modal. */
+function confirmTap(btn, label, prompt){
+  if(btn.dataset.armed !== undefined){ disarm(btn, label); return true; }
+  btn.dataset.armed = label.textContent;
+  label.textContent = prompt;
+  btn._disarm = setTimeout(function(){ disarm(btn, label); }, 3000);
+  return false;
+}
+function disarm(btn, label){
+  if(btn.dataset.armed === undefined) return;
+  clearTimeout(btn._disarm);
+  label.textContent = btn.dataset.armed;
+  delete btn.dataset.armed;
+}
 
 /* ---------------- brew timer ---------------- */
-var T = {steps:[], total:0, start:0, paused:false, pausedAt:0, timer:null, lock:null, last:-1, finished:false};
+var T = {steps:[], total:0, start:0, paused:false, pausedAt:0, timer:null, lock:null, last:-1, finished:false, flashOff:null};
 
-function beep(){
+/* One shared AudioContext. Safari only lets a context start inside a tap, so
+   it is created and resumed from taps (Start, and any tap on the brew screen)
+   and the timer's beeps reuse it. A new context per beep, made from the timer,
+   stays silent on iPhone. iOS also mutes Web Audio when the ringer switch is
+   on silent, so every step change flashes the screen too, and vibrates where
+   the browser supports it (Android). */
+var AC = null;
+function unlockAudio(){
   try{
-    var Ctx = window.AudioContext || window.webkitAudioContext;
-    if(!Ctx) return;
-    var ctx = new Ctx(), o = ctx.createOscillator(), g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type = "sine"; o.frequency.value = 880;
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
-    o.start(); o.stop(ctx.currentTime + 0.32);
-    setTimeout(function(){ try{ ctx.close(); }catch(e){} }, 600);
+    if(!AC){
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if(Ctx) AC = new Ctx();
+    }
+    if(AC && AC.state !== "running"){
+      var p = AC.resume();
+      if(p && p.catch) p.catch(function(){});
+    }
   }catch(e){}
 }
+function beep(){
+  try{
+    if(!AC) return;
+    var t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    o.type = "sine"; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    o.start(t); o.stop(t + 0.32);
+  }catch(e){}
+}
+function cue(){
+  beep();
+  try{ if(navigator.vibrate) navigator.vibrate(200); }catch(e){}
+  $("brewScreen").classList.add("flash");
+  clearTimeout(T.flashOff);
+  T.flashOff = setTimeout(function(){ $("brewScreen").classList.remove("flash"); }, 1200);
+}
+
+function wantAwake(){ return $("brewScreen").classList.contains("on") && !T.paused && !T.finished; }
 function keepAwake(){
-  try{ if("wakeLock" in navigator) navigator.wakeLock.request("screen").then(function(l){ T.lock = l; }).catch(function(){}); }catch(e){}
+  try{
+    if(!("wakeLock" in navigator) || T.lock) return;
+    navigator.wakeLock.request("screen").then(function(l){
+      /* Stop, Pause or the end of the brew can land before the request does. */
+      if(!wantAwake() || T.lock){ l.release(); return; }
+      T.lock = l;
+      l.addEventListener("release", function(){ if(T.lock === l) T.lock = null; });
+    }).catch(function(){});
+  }catch(e){}
 }
 function releaseAwake(){ try{ if(T.lock){ T.lock.release(); T.lock = null; } }catch(e){} }
 function elapsed(){ return (T.paused ? T.pausedAt : Date.now() - T.start)/1000; }
@@ -677,8 +751,11 @@ function startBrew(){
   T.total = acc;
   T.start = Date.now(); T.paused = false; T.last = -1; T.finished = false;
   $("pauseLabel").textContent = "Pause";
+  disarm($("exit"), $("exitLabel"));
+  $("exitLabel").textContent = "Stop";
+  $("pause").disabled = $("skip").disabled = false;
   $("brewScreen").classList.add("on");
-  keepAwake(); beep();
+  unlockAudio(); keepAwake(); beep();
   if(T.timer) clearInterval(T.timer);
   T.timer = setInterval(tick, 120);
   tick();
@@ -690,7 +767,7 @@ function tick(){
   var s = T.steps[idx];
 
   if(idx !== T.last){
-    if(T.last !== -1) beep();
+    if(T.last !== -1) cue();
     T.last = idx;
     $("sName").textContent = s.name;
     $("sNote").textContent = s.note;
@@ -708,10 +785,17 @@ function tick(){
   $("sBar").style.width = Math.min(100, Math.max(0, into/s.dur*100)) + "%";
 
   if(e >= T.total && !T.finished){
+    /* Freeze on Done and let the screen sleep; Close returns home. */
     T.finished = true;
+    clearInterval(T.timer); T.timer = null;
+    releaseAwake();
+    $("clock").textContent = mmss(T.total);
     setIcon($("sIcon"), "ic-done");
     $("sName").textContent = "Done";
-    beep();
+    disarm($("exit"), $("exitLabel"));
+    $("exitLabel").textContent = "Close";
+    $("pause").disabled = $("skip").disabled = true;
+    cue();
   }
 }
 
@@ -721,9 +805,17 @@ function stopBrew(){
   releaseAwake();
 }
 
-$("start").addEventListener("click", startBrew);
-$("exit").addEventListener("click", stopBrew);
+$("start").addEventListener("click", function(){
+  if(restarting() && !confirmTap(this, $("startLabel"), "Tap again to restart")) return;
+  startBrew();
+});
+$("exit").addEventListener("click", function(){
+  if(T.finished || confirmTap(this, $("exitLabel"), "Tap again to stop")) stopBrew();
+});
+/* Capture phase, so the context is running before a tap's own handler beeps. */
+$("brewScreen").addEventListener("click", unlockAudio, true);
 $("pause").addEventListener("click", function(){
+  if(T.finished) return;
   if(T.paused){
     T.start = Date.now() - T.pausedAt; T.paused = false;
     $("pauseLabel").textContent = "Pause"; keepAwake();
@@ -737,13 +829,16 @@ $("skip").addEventListener("click", function(){
   for(var i = 0; i < T.steps.length; i++){ if(e >= T.steps[i].at) idx = i; }
   var n = T.steps[idx+1];
   if(!n) return;
-  var shift = (n.at - e)*1000;
+  /* Whole milliseconds: a fractional shift can land a hair short of the next
+     step, and while paused nothing would move it on. */
+  var ms = T.paused ? T.pausedAt : Date.now() - T.start;
+  var shift = n.at*1000 - ms;
   T.start -= shift;
   if(T.paused) T.pausedAt += shift;
   tick();
 });
 document.addEventListener("visibilitychange", function(){
-  if(document.visibilityState === "visible" && $("brewScreen").classList.contains("on") && !T.paused) keepAwake();
+  if(document.visibilityState === "visible" && wantAwake()) keepAwake();
 });
 document.addEventListener("keydown", function(ev){
   if(!$("brewScreen").classList.contains("on")) return;
@@ -754,7 +849,7 @@ document.addEventListener("keydown", function(ev){
 /* ---------------- boot ---------------- */
 load();
 render();
-setInterval(function(){ if(S.method === "cold" && S.coldStart) renderResting(); }, 30000);
+setInterval(function(){ if(S.method === "cold" && S.coldStart){ renderResting(); setStartLabel(); } }, 30000);
 
 if("serviceWorker" in navigator && location.protocol !== "file:"){
   window.addEventListener("load", function(){
