@@ -36,6 +36,11 @@ self.addEventListener("activate", (e) => {
 // back to the cache when there is something there.
 function fromNetwork(e, req, init) {
   return fetch(req, init).then((res) => {
+    // A navigation fetched this way keeps redirect: "manual"; hand any
+    // redirect back to the browser to follow instead of treating it as a
+    // failure (it would otherwise pin installed copies to the cache if the
+    // site ever moved).
+    if (res.type === "opaqueredirect") return res;
     if (res.ok) {
       const copy = res.clone();
       e.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy)));
@@ -59,12 +64,12 @@ function navigate(e) {
   return new Promise((resolve) => {
     let settled = false;
     const take = (res) => { if (res && !settled) { settled = true; resolve(res); } };
-    const timer = setTimeout(() => cachedPage(req).then(take), NAV_TIMEOUT);
+    const timer = setTimeout(() => cachedPage(req).then(take, () => {}), NAV_TIMEOUT);
     net.then(
       (res) => { clearTimeout(timer); take(res); },
       () => {
         clearTimeout(timer);
-        cachedPage(req).then((hit) => take(hit || Response.error()));
+        cachedPage(req).catch(() => null).then((hit) => take(hit || Response.error()));
       }
     );
   });

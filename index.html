@@ -175,7 +175,9 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
   padding:calc(14px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px));
 }
 .brew.on{display:flex}
-.brew.flash{background:var(--line)}
+/* Step-change flash: a signal ring on a raised background. Every text pair
+   stays at AA on --raise, unlike --line. */
+.brew.flash{background:var(--raise);box-shadow:inset 0 0 0 10px var(--signal)}
 .brewinner{max-width:430px;margin:0 auto;width:100%;flex:1;display:flex;flex-direction:column}
 .brewtop{display:flex;align-items:center;justify-content:space-between}
 .brewtop button{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--muted);padding:10px 14px 10px 0;min-height:44px}
@@ -420,8 +422,11 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
   <div class="foot" id="credit"></div>
 </div>
 
+<!-- Outside #home (inert while brewing) and #brewScreen (display:none until a
+     brew starts), so the region exists before the first step is written. -->
+<div class="sr" id="sLive" aria-live="polite"></div>
+
 <div class="brew" id="brewScreen">
- <div class="sr" id="sLive" aria-live="polite"></div>
  <div class="brewinner">
   <div class="brewtop">
     <button id="exit"><svg class="i i-sm" aria-hidden="true"><use href="#ic-stop"/></svg><span id="exitLabel">Stop</span></button>
@@ -857,6 +862,7 @@ function tick(){
     disarm($("exit"), $("exitLabel"));
     $("exitLabel").textContent = "Close";
     $("pause").disabled = $("skip").disabled = true;
+    $("exit").focus({preventScroll:true});
     cue();
   }
 }
@@ -864,6 +870,7 @@ function tick(){
 function stopBrew(){
   if(T.timer){ clearInterval(T.timer); T.timer = null; }
   $("brewScreen").classList.remove("on");
+  $("sLive").textContent = "";
   $("home").inert = false;
   $("start").focus({preventScroll:true});
   releaseAwake();
