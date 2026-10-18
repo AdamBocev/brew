@@ -87,8 +87,10 @@ git push -u origin main
 ```
 
 Then in the repository: **Settings → Pages → Build and deployment → Source:
-GitHub Actions**. The workflow in `.github/workflows/deploy.yml` publishes the
-repository root on every push to `main`.
+GitHub Actions**. On every push to `main`, the workflow in
+`.github/workflows/deploy.yml` copies the app files (`index.html`, `sw.js`,
+`manifest.webmanifest`, `icons/`, `fonts/`) into `_site` and publishes that, so
+the README and notes stay off the site.
 
 All paths are relative, so it works from a project subpath
 (`username.github.io/brew/`) without changes.
@@ -102,10 +104,10 @@ need.
 
 ### After a deploy
 
-Bump `CACHE` in `sw.js` (`brew-v1` → `brew-v2`) whenever you change the app.
-The service worker is network-first for same-origin requests, so a redeploy
-normally lands straight away, but the version bump guarantees old caches are
-cleared.
+Bump `CACHE` in `sw.js` (`brew-v3` → `brew-v4`) whenever you change the app.
+The service worker is network-first and skips the browser's HTTP cache when it
+checks for a new version, so a redeploy normally lands on the next launch; the
+version bump guarantees the offline copy is replaced and old caches are cleared.
 
 ## Installing on a phone
 
@@ -117,10 +119,6 @@ meant to sit on the counter next to the kettle.
 
 ## Known limitations
 
-- The web font loads from Google Fonts. The service worker caches it after the
-  first visit, so offline use is fine from then on, but the very first load needs
-  a connection to get the typeface. There is a system font fallback stack if it
-  never arrives.
 - The wake lock API is unsupported in some browsers; the timer still runs, the
   screen just may sleep.
 - Timer state is not restored if you close the app mid-brew. Cold brew steeps
@@ -128,4 +126,5 @@ meant to sit on the counter next to the kettle.
 
 ## Licence
 
-MIT. See `LICENSE`.
+MIT. See `LICENSE`. The bundled Instrument Sans font is under the SIL Open Font
+License 1.1; see `fonts/OFL.txt`.

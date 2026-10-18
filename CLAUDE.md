@@ -12,11 +12,17 @@ any. If a change seems to need React or a build pipeline, the change is wrong.
 
 - `index.html` — the whole app. Recipes live in the `R` object at the top of the
   `<script>` block.
-- `sw.js` — service worker. Network-first for same-origin, cache-first for
-  Google Fonts. **Bump `CACHE` on every deploy.**
+- `sw.js` — service worker. Precaches the files in `SHELL`, then network-first
+  for same-origin requests; only successful responses replace cached ones, and
+  opening the app falls back to the cached copy after 3 s on a slow network.
+  **Bump `CACHE` on every deploy.**
+- `fonts/` — self-hosted Instrument Sans (one variable latin woff2, 400–700) and
+  its OFL licence. No requests leave the origin.
 - `manifest.webmanifest`, `icons/` — PWA install metadata.
-- `.github/workflows/deploy.yml` — publishes the repo root to GitHub Pages on
-  push to `main`.
+- `.github/workflows/deploy.yml` — on push to `main`, copies an explicit list of
+  app files into `_site` and publishes that to GitHub Pages. README, CLAUDE.md
+  and LICENSE are not published. A new app file must be added to that copy
+  step; the workflow fails if anything in `SHELL` is missing from `_site`.
 
 State lives in `localStorage` under the key `brew.v1`, wrapped in try/catch.
 Every read must survive the key being absent.
@@ -71,7 +77,10 @@ The goal is "don't make me think at 7am", not feature completeness.
   `currentColor`, 1.6 stroke width. Add new icons there; do not add an icon
   library.
 - Colours come from CSS custom properties on `:root`, with a light-mode override.
-  Never hardcode a colour in a rule.
+  Never hardcode a colour in a rule. Text on a `--signal` fill uses
+  `--on-signal`. Keep text at WCAG AA (4.5:1) in both modes.
+- Small-looking controls get the `.hit` class, which extends the tap area to
+  44px without changing the layout.
 - Respect `env(safe-area-inset-*)` — it runs fullscreen on a phone.
 
 Things deliberately left out, which should stay out unless asked: accounts,
@@ -88,7 +97,6 @@ In rough priority order:
    three minutes rather than twelve hours. Needs a sourced recipe first.
 4. Optional brew log for dialling in. Separate screen; must not clutter the fast
    path.
-5. Self-host the Instrument Sans woff2 so the first load works offline.
 
 ## Deploying
 
@@ -109,5 +117,6 @@ python3 -m http.server 8080   # service workers need a real origin
 ```
 
 Then check: every method renders, the ratio flips correctly when switching
-between entering coffee and entering water, the timer advances and beeps, and
-the Moccamaster flow row changes at 875 ml.
+between entering coffee and entering water, the timer advances, beeps and
+flashes, and the Moccamaster flow row changes at 875 ml. Check light and dark
+mode.

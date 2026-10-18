@@ -13,10 +13,14 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/instrument-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* Self-hosted so the first load works offline. One variable file covers
+   weights 400-700; latin subset only (licence in fonts/OFL.txt). */
+@font-face{
+  font-family:"Instrument Sans";font-style:normal;font-weight:400 700;font-display:swap;
+  src:url(fonts/instrument-sans-latin.woff2) format("woff2");
+}
 :root{
   --ground:#1C1511;
   --raise:#2A1F18;
@@ -24,20 +28,23 @@
   --ink:#F4EDE4;
   --muted:#A08F80;
   --signal:#E8A33D;
+  --on-signal:#1C1511;
   --font:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
   color-scheme:dark light;
 }
+/* Light signal is dark enough for AA as text (4.7:1 on ground) and under
+   --on-signal text (5.7:1). */
 :root[data-theme="light"]{
   --ground:#EBE4DA; --raise:#F6F2EC; --line:#D6CCBE;
-  --ink:#241A13; --muted:#6E6054; --signal:#A86A12;
+  --ink:#241A13; --muted:#6E6054; --signal:#8C580D; --on-signal:#FFF8EE;
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
     --ground:#EBE4DA; --raise:#F6F2EC; --line:#D6CCBE;
-    --ink:#241A13; --muted:#6E6054; --signal:#A86A12;
+    --ink:#241A13; --muted:#6E6054; --signal:#8C580D; --on-signal:#FFF8EE;
   }
 }
 *,*::before,*::after{box-sizing:inherit}
@@ -50,6 +57,10 @@ body{
 }
 button,input{font:inherit;color:inherit;font-variant-numeric:tabular-nums}
 button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+/* Invisible hit area so small-looking controls still take a 44px tap. */
+.hit{position:relative}
+.hit::after{content:"";position:absolute;inset:-7px -3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 :focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:6px}
 
 .i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;
@@ -77,6 +88,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
   color:var(--muted);padding:3px 0 5px;border-bottom:2px solid transparent;
 }
 .doseswitch button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--signal)}
+.doseswitch button::after{inset:-8px -8px}
 .stepper{display:flex;align-items:center;gap:12px}
 .stepper input{
   flex:1;min-width:0;background:none;border:0;padding:0;
@@ -85,9 +97,9 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .stepper input[type=number]{-moz-appearance:textfield}
 .unit{font-size:24px;font-weight:500;color:var(--muted);margin-left:-8px;align-self:flex-end;padding-bottom:9px}
-.bump{display:flex;flex-direction:column;gap:5px}
+.bump{display:flex;gap:8px}
 .bump button{
-  width:46px;height:38px;border-radius:10px;background:var(--raise);
+  width:46px;height:46px;border-radius:10px;background:var(--raise);
   display:flex;align-items:center;justify-content:center;color:var(--ink);
 }
 .bump button:active{background:var(--line)}
@@ -113,17 +125,18 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
   padding:10px 3px 9px;border-radius:11px;font-size:12.5px;font-weight:600;
   color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);
 }
-.strength button[aria-pressed="true"]{color:var(--ground);background:var(--signal);box-shadow:none}
-:root[data-theme="light"] .strength button[aria-pressed="true"]{color:#FFF8EE}
+.strength button[aria-pressed="true"]{color:var(--on-signal);background:var(--signal);box-shadow:none}
 
 /* spec rows */
 .spec{margin-top:22px;border-top:1px solid var(--line)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
 .row .k{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--muted);font-weight:500;flex:none}
 .row .v{font-size:15px;font-weight:600;text-align:right}
+/* 16px stops iOS zooming in on focus; the negative margin gives a 44px
+   target without making the row taller. */
 .row input.v{
-  background:none;border:0;padding:5px 8px;max-width:58%;border-radius:8px;
-  box-shadow:inset 0 0 0 1px transparent;
+  background:none;border:0;padding:11px 8px;margin:-6px 0;max-width:58%;border-radius:8px;
+  font-size:16px;box-shadow:inset 0 0 0 1px transparent;
 }
 .row input.v:hover,.row input.v:focus{box-shadow:inset 0 0 0 1px var(--line);outline:none}
 .row input.v::placeholder{color:var(--muted);font-weight:500}
@@ -139,13 +152,12 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 
 .go{
   margin-top:24px;width:100%;padding:18px;border-radius:14px;
-  background:var(--signal);color:#1C1511;font-size:17px;font-weight:700;letter-spacing:-.01em;
+  background:var(--signal);color:var(--on-signal);font-size:17px;font-weight:700;letter-spacing:-.01em;
   display:flex;align-items:center;justify-content:center;gap:9px;
 }
-:root[data-theme="light"] .go{color:#FFF8EE}
 .go:active{filter:brightness(.92)}
 .spacer{flex:1 1 auto;min-height:12px}
-.foot{margin-top:22px;font-size:11.5px;line-height:1.6;color:var(--muted);opacity:.8}
+.foot{margin-top:22px;font-size:12.5px;line-height:1.6;color:var(--muted)}
 .foot a{color:var(--muted)}
 
 /* cold brew resting card */
@@ -176,7 +188,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 .target{font-size:84px;font-weight:600;letter-spacing:-.05em;line-height:.98}
 .target em{font-style:normal;font-size:28px;font-weight:500;color:var(--muted);margin-left:4px}
 .stepnote{font-size:16.5px;line-height:1.42;color:var(--ink);max-width:23em;margin-top:8px}
-.countdown{font-size:14.5px;font-weight:600;color:var(--muted);margin-top:14px}
+.countdown{font-size:18px;font-weight:600;color:var(--ink);margin-top:14px}
 .bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:9px;width:100%}
 .bar i{display:block;height:100%;background:var(--signal);width:0;border-radius:3px}
 .upnext{margin-top:18px;font-size:13px;color:var(--muted);min-height:1.4em;display:flex;align-items:center;gap:7px}
@@ -186,11 +198,19 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
   box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);
   display:flex;align-items:center;justify-content:center;gap:8px;
 }
-.brewfoot button.primary{background:var(--signal);color:#1C1511;box-shadow:none}
-:root[data-theme="light"] .brewfoot button.primary{color:#FFF8EE}
+.brewfoot button.primary{background:var(--signal);color:var(--on-signal);box-shadow:none}
 .brewfoot button:disabled{opacity:.4;cursor:default}
 
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+/* Narrow phones (320px): keep four-digit amounts and the toggle pills inside
+   the row. */
+@media (max-width:359px){
+  .stepper input{font-size:56px}
+  .row{gap:8px}
+  .row .k{gap:7px}
+  .toggle{gap:4px}
+  .toggle button{padding:7px 9px;white-space:nowrap}
+}
 @media (max-height:640px){
   .stepper input{font-size:58px}
   .target{font-size:62px}
@@ -308,18 +328,18 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 
   <div class="dose">
     <div class="doseswitch" role="group" aria-label="What are you entering">
-      <button data-input="coffee" aria-pressed="true"><svg class="i i-sm" aria-hidden="true"><use href="#ic-bean"/></svg>Coffee</button>
-      <button data-input="water" aria-pressed="false"><svg class="i i-sm" aria-hidden="true"><use href="#ic-drop"/></svg>Water</button>
+      <button class="hit" data-input="coffee" aria-pressed="true"><svg class="i i-sm" aria-hidden="true"><use href="#ic-bean"/></svg>Coffee</button>
+      <button class="hit" data-input="water" aria-pressed="false"><svg class="i i-sm" aria-hidden="true"><use href="#ic-drop"/></svg>Water</button>
     </div>
     <div class="stepper">
       <input id="amount" type="number" inputmode="decimal" min="1" step="1" value="30" aria-label="Amount in grams">
       <span class="unit">g</span>
       <div class="bump">
-        <button id="up" aria-label="Increase">
-          <svg class="i" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>
-        </button>
         <button id="down" aria-label="Decrease">
           <svg class="i" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 12h12"/></svg>
+        </button>
+        <button id="up" aria-label="Increase">
+          <svg class="i" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>
         </button>
       </div>
     </div>
@@ -351,7 +371,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
   <div class="spec">
     <div class="row">
       <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-grind"/></svg>Grind</span>
-      <input class="v" id="grind" aria-label="Grind setting">
+      <input class="v" id="grind" aria-label="Grind setting" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
     </div>
     <div class="row">
       <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-temp"/></svg>Water</span>
@@ -364,8 +384,8 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
     <div class="row">
       <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-scale"/></svg>Weighing</span>
       <div class="toggle">
-        <button data-scale="on" aria-pressed="true"><svg class="i i-sm" aria-hidden="true"><use href="#ic-scale"/></svg>Scale</button>
-        <button data-scale="off" aria-pressed="false"><svg class="i i-sm" aria-hidden="true"><use href="#ic-spoon"/></svg>Spoons</button>
+        <button class="hit" data-scale="on" aria-pressed="true"><svg class="i i-sm" aria-hidden="true"><use href="#ic-scale"/></svg>Scale</button>
+        <button class="hit" data-scale="off" aria-pressed="false"><svg class="i i-sm" aria-hidden="true"><use href="#ic-spoon"/></svg>Spoons</button>
       </div>
     </div>
     <div class="row hidden" id="flowRow">
@@ -375,8 +395,8 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
     <div class="row hidden" id="styleRow">
       <span class="k"><svg class="i i-sm" aria-hidden="true"><use href="#ic-serve"/></svg>Serve</span>
       <div class="toggle">
-        <button data-style="rtd" aria-pressed="true">Ready to drink</button>
-        <button data-style="conc" aria-pressed="false">Concentrate</button>
+        <button class="hit" data-style="rtd" aria-pressed="true">Ready to drink</button>
+        <button class="hit" data-style="conc" aria-pressed="false">Concentrate</button>
       </div>
     </div>
   </div>
@@ -401,6 +421,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 </div>
 
 <div class="brew" id="brewScreen">
+ <div class="sr" id="sLive" aria-live="polite"></div>
  <div class="brewinner">
   <div class="brewtop">
     <button id="exit"><svg class="i i-sm" aria-hidden="true"><use href="#ic-stop"/></svg><span id="exitLabel">Stop</span></button>
@@ -785,6 +806,9 @@ function startBrew(){
   $("exitLabel").textContent = "Stop";
   $("pause").disabled = $("skip").disabled = false;
   $("brewScreen").classList.add("on");
+  /* Keep Tab and VoiceOver on the brew screen, not the controls behind it. */
+  $("home").inert = true;
+  $("pause").focus({preventScroll:true});
   unlockAudio(); keepAwake(); beep();
   if(T.timer) clearInterval(T.timer);
   T.timer = setInterval(tick, 120);
@@ -802,7 +826,8 @@ function tick(){
     $("sName").textContent = s.name;
     $("sNote").textContent = s.note;
     setIcon($("sIcon"), s.icon);
-    $("sTarget").innerHTML = s.target !== null ? (s.target + "<em>g</em>") : "&mdash;";
+    if(s.target !== null) $("sTarget").innerHTML = s.target + "<em>g</em>";
+    $("sLive").textContent = s.name + (s.target !== null ? ", to " + s.target + " grams" : "");
     var n = T.steps[idx+1];
     $("sNext").innerHTML = n
       ? '<svg class="i i-sm" aria-hidden="true"><use href="#ic-next"/></svg>' + n.name + (n.target !== null ? " to " + n.target + " g" : "")
@@ -811,7 +836,12 @@ function tick(){
 
   $("clock").textContent = mmss(e);
   var into = e - s.at;
-  $("sCount").textContent = e >= T.total ? "Brew complete" : (mmss(s.dur - into) + " left in this step");
+  /* Steps with nothing to pour put the time left in the big numeral, so it
+     reads from the kettle. Pour steps keep their cumulative target there. */
+  if(s.target === null) $("sTarget").textContent = mmss(s.dur - into);
+  $("sCount").textContent = e >= T.total ? "Brew complete"
+    : s.target === null ? "Left in this step"
+    : mmss(s.dur - into) + " left in this step";
   $("sBar").style.width = Math.min(100, Math.max(0, into/s.dur*100)) + "%";
 
   if(e >= T.total && !T.finished){
@@ -822,6 +852,8 @@ function tick(){
     $("clock").textContent = mmss(T.total);
     setIcon($("sIcon"), "ic-done");
     $("sName").textContent = "Done";
+    $("sLive").textContent = "Done";
+    if(s.target === null) $("sTarget").innerHTML = "&mdash;";
     disarm($("exit"), $("exitLabel"));
     $("exitLabel").textContent = "Close";
     $("pause").disabled = $("skip").disabled = true;
@@ -832,6 +864,8 @@ function tick(){
 function stopBrew(){
   if(T.timer){ clearInterval(T.timer); T.timer = null; }
   $("brewScreen").classList.remove("on");
+  $("home").inert = false;
+  $("start").focus({preventScroll:true});
   releaseAwake();
 }
 

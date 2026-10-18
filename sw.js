@@ -1,17 +1,25 @@
 /* Bump CACHE on every deploy so clients pick up the new build. */
-const CACHE = "brew-v3";
+const CACHE = "brew-v4";
 const SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
+  "./fonts/instrument-sans-latin.woff2",
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
+/* How long opening the app waits on the network before showing the cached
+   copy. The network answer still refreshes the cache for next time. */
+const NAV_TIMEOUT = 3000;
 
 self.addEventListener("install", (e) => {
+  // cache: "reload" skips the browser's HTTP cache (GitHub Pages sends
+  // max-age=600), so a new version never precaches the previous build.
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: "reload" }))))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -23,33 +31,57 @@ self.addEventListener("activate", (e) => {
   );
 });
 
+// Only a successful response replaces the cached copy, so a 404 or a Pages
+// outage can't overwrite the good offline version. A failed response falls
+// back to the cache when there is something there.
+function fromNetwork(e, req, init) {
+  return fetch(req, init).then((res) => {
+    if (res.ok) {
+      const copy = res.clone();
+      e.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy)));
+      return res;
+    }
+    return caches.match(req).then((hit) => hit || res);
+  });
+}
+
+function cachedPage(req) {
+  return caches.match(req).then((hit) => hit || caches.match("./index.html"));
+}
+
+// Opening the app: network-first, revalidated against the server (no-cache
+// still gets a cheap 304 when nothing changed), but never more than
+// NAV_TIMEOUT on a weak connection when a cached copy exists.
+function navigate(e) {
+  const req = e.request;
+  const net = fromNetwork(e, req, { cache: "no-cache" });
+  e.waitUntil(net.catch(() => {}));
+  return new Promise((resolve) => {
+    let settled = false;
+    const take = (res) => { if (res && !settled) { settled = true; resolve(res); } };
+    const timer = setTimeout(() => cachedPage(req).then(take), NAV_TIMEOUT);
+    net.then(
+      (res) => { clearTimeout(timer); take(res); },
+      () => {
+        clearTimeout(timer);
+        cachedPage(req).then((hit) => take(hit || Response.error()));
+      }
+    );
+  });
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
-  const url = new URL(req.url);
+  if (new URL(req.url).origin !== location.origin) return;
 
-  // Google Fonts: cache-first, tolerate opaque responses.
-  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
-    e.respondWith(
-      caches.open(CACHE).then((c) =>
-        c.match(req).then((hit) =>
-          hit || fetch(req).then((res) => { c.put(req, res.clone()); return res; }).catch(() => hit)
-        )
-      )
-    );
+  if (req.mode === "navigate") {
+    e.respondWith(navigate(e));
     return;
   }
 
-  if (url.origin !== location.origin) return;
-
-  // App shell: network-first so a redeploy lands immediately, cache as fallback.
+  // Everything else (font, icons, manifest): network-first, cache as fallback.
   e.respondWith(
-    fetch(req)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
-        return res;
-      })
-      .catch(() => caches.match(req).then((hit) => hit || caches.match("./index.html")))
+    fromNetwork(e, req).catch(() => caches.match(req).then((hit) => hit || Response.error()))
   );
 });

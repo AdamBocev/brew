@@ -10,9 +10,10 @@ permissions:
   pages: write
   id-token: write
 
+# Let a deploy that has started finish, as GitHub's own Pages template does.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -21,10 +22,24 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/checkout@v7
+      - uses: actions/configure-pages@v6
+      # Publish only what the app needs. README, CLAUDE.md and LICENSE stay
+      # in the repo but off the site. Add new app files here.
+      - name: Stage site
+        run: |
+          mkdir _site
+          cp index.html sw.js manifest.webmanifest _site/
+          cp -R icons fonts _site/
+      # Every file the service worker precaches must be published, or the new
+      # worker fails to install and installed copies keep the old version.
+      - name: Check precached files are published
+        run: |
+          for p in $(grep -oE '"\./[^"]*"' sw.js | tr -d '"'); do
+            test -e "_site/${p#./}" || { echo "sw.js precaches $p but it is not in _site"; exit 1; }
+          done
+      - uses: actions/upload-pages-artifact@v5
         with:
-          path: .
+          path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
