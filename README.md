@@ -40,20 +40,23 @@ Moccamaster takes its flow settings, brew temperature and minimum batch size fro
 bloom-and-stir technique from **Sample Coffee's published Moccamaster guide**
 (1:16, medium-coarse). Technivorm's own suggestion is weaker, about 55 g/L
 (roughly 1:18). Sample opens the basket fully after the stir; the app uses
-Technivorm's half-open setting for four to six cups instead.
+Technivorm's half-open setting for four to six cups instead. Technivorm's own
+documents also disagree on the flow thresholds: an older manual gives open for
+6–10 cups and half open for 2–5, the current support page open for seven cups
+and up and half open for four to six. The app follows the current page, and the
+credit says so.
 
 The footer under each method links to these sources.
 
-Three things are deliberately flagged in the app rather than presented as fact:
+Three numbers are deliberately labelled as guesses in the app rather than
+presented as fact:
 
 1. **Concentrate mode (1:8) is not Hoffmann's.** It is a common community starting
    point. Treat it as a guess and adjust once you have tasted a batch.
 2. **The spoons estimate assumes ~5 g per level tablespoon.** That constant moves
    with grind size and roast level. It is a rough average, not a measurement.
-3. **Technivorm's own documents disagree on the flow thresholds.** An older manual
-   gives open for 6–10 cups and half open for 2–5; the current support page gives
-   open for seven cups and up, half open for four to six. The app follows the
-   current page. Tank line numbers are derived from a 125 ml cup and vary by model.
+3. **The Moccamaster tank-line hint** assumes a 125 ml cup per line, which fits
+   the 1.25 L carafe's markings, but markings vary by model.
 
 Recipes live in the `R` object at the top of the script in `index.html`. If your
 own numbers differ, change them there — the app is built to carry your taste, not
@@ -102,12 +105,14 @@ the repository with no build command and the root as the output directory, or
 copy it to any web host. The only requirement is HTTPS, which service workers
 need.
 
-### After a deploy
+### Before each deploy
 
-Bump `CACHE` in `sw.js` (`brew-v3` → `brew-v4`) whenever you change the app.
-The service worker is network-first and skips the browser's HTTP cache when it
-checks for a new version, so a redeploy normally lands on the next launch; the
-version bump guarantees the offline copy is replaced and old caches are cleared.
+Bump `CACHE` in `sw.js` (`brew-vN` → `brew-vN+1`) in the same commit as any
+change to the app, then push. The service worker is network-first for pages and
+skips the browser's HTTP cache when it checks for a new version, so a redeploy
+normally lands on the next launch; the version bump guarantees the offline copy
+(and the font, which is served from the cache) is replaced and old caches are
+cleared.
 
 ## Installing on a phone
 

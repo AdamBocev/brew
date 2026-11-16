@@ -13,8 +13,9 @@ any. If a change seems to need React or a build pipeline, the change is wrong.
 - `index.html` — the whole app. Recipes live in the `R` object at the top of the
   `<script>` block.
 - `sw.js` — service worker. Precaches the files in `SHELL`, then network-first
-  for same-origin requests; only successful responses replace cached ones, and
-  opening the app falls back to the cached copy after 3 s on a slow network.
+  for same-origin requests (the font is cache-first, since it only changes with
+  a `CACHE` bump); only successful responses replace cached ones, and opening
+  the app falls back to the cached copy after 3 s on a slow network.
   **Bump `CACHE` on every deploy.**
 - `fonts/` — self-hosted Instrument Sans (one variable latin woff2, 400–700) and
   its OFL licence. No requests leave the origin.

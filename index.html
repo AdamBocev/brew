@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1C1511" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#EBE4DA" media="(prefers-color-scheme: light)">
-<meta name="description" content="Coffee brewing calculator and pour timer for V60, French press and cold brew.">
+<meta name="description" content="Coffee brewing calculator and pour timer for V60, French press, Moccamaster and cold brew.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Brew">
@@ -138,7 +138,9 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
   background:none;border:0;padding:11px 8px;margin:-6px 0;max-width:58%;border-radius:8px;
   font-size:16px;box-shadow:inset 0 0 0 1px transparent;
 }
-.row input.v:hover,.row input.v:focus{box-shadow:inset 0 0 0 1px var(--line);outline:none}
+.row input.v:hover{box-shadow:inset 0 0 0 1px var(--line)}
+/* Focus needs 3:1 against the ground; --line is only ~1.3:1. */
+.row input.v:focus{box-shadow:inset 0 0 0 1.5px var(--muted);outline:none}
 .row input.v::placeholder{color:var(--muted);font-weight:500}
 .toggle{display:flex;gap:6px}
 .toggle button{
@@ -621,7 +623,7 @@ function render(){
     var w = Math.round(water());
     if(w > 1250) warn = "That is more than a 1.25 L carafe holds. Split it into two brews.";
     else if(w < 500) warn = "Technivorm recommends brewing at least four cups (about 500 ml) in an 8\u201310 cup brewer.";
-    else warn = "Tank fills to " + tankLine(w) + ". Markings vary by model, so check yours.";
+    else warn = "Tank fills to " + tankLine(w) + " — a guess from a 125 ml cup. Markings vary by model, so check yours.";
   }
   if(S.method === "cold" && S.coldStyle === "conc"){
     warn = "1:8 is a common starting point for concentrate, not Hoffmann\u2019s \u2014 his recipe is ready to drink. Treat it as a guess.";
@@ -710,7 +712,10 @@ $("amount").addEventListener("input", function(){
   var v = parseFloat(this.value);
   if(!isNaN(v) && v > 0){ S.amount = v; save(); render(); }
 });
-$("amount").addEventListener("blur", render);
+/* The input handler has already rendered everything else; only the field
+   needs resetting (e.g. after clearing it). A full render here would swap the
+   footer's source links out from under a tap and swallow it. */
+$("amount").addEventListener("blur", function(){ this.value = fmt(S.amount); });
 function bump(dir){
   var step = S.inputMode === "coffee" ? 1 : 10;
   S.amount = Math.max(1, Math.round((S.amount + dir*step)*10)/10);
@@ -799,7 +804,11 @@ function elapsed(){ return (T.paused ? T.pausedAt : Date.now() - T.start)/1000; 
 
 function startBrew(){
   var m = R[S.method];
-  if(!m.timed){ S.coldStart = Date.now(); save(); render(); return; }
+  if(!m.timed){
+    /* A Discard armed for the old batch must not discard the new one. */
+    disarm($("cancelSteep"), $("cancelSteep"));
+    S.coldStart = Date.now(); save(); render(); return;
+  }
 
   T.steps = m.steps(coffee(), water());
   var acc = 0;
@@ -899,11 +908,13 @@ $("skip").addEventListener("click", function(){
   var e = elapsed(), idx = 0;
   for(var i = 0; i < T.steps.length; i++){ if(e >= T.steps[i].at) idx = i; }
   var n = T.steps[idx+1];
-  if(!n) return;
+  /* On the last step, Next finishes the brew (e.g. an early drawdown) rather
+     than doing nothing; tick() then takes the normal Done path. */
+  var at = n ? n.at : T.total;
   /* Whole milliseconds: a fractional shift can land a hair short of the next
      step, and while paused nothing would move it on. */
   var ms = T.paused ? T.pausedAt : Date.now() - T.start;
-  var shift = n.at*1000 - ms;
+  var shift = at*1000 - ms;
   T.start -= shift;
   if(T.paused) T.pausedAt += shift;
   tick();
@@ -914,7 +925,11 @@ document.addEventListener("visibilitychange", function(){
 document.addEventListener("keydown", function(ev){
   if(!$("brewScreen").classList.contains("on")) return;
   if(ev.key === "Escape") stopBrew();
-  if(ev.key === " "){ ev.preventDefault(); $("pause").click(); }
+  /* Space pauses, unless a button has focus: then it presses that button
+     (Close at Done, Stop, Next) as it normally would. */
+  if(ev.key === " " && !(ev.target.closest && ev.target.closest("button"))){
+    ev.preventDefault(); $("pause").click();
+  }
 });
 
 /* ---------------- boot ---------------- */

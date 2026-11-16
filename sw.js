@@ -1,5 +1,5 @@
 /* Bump CACHE on every deploy so clients pick up the new build. */
-const CACHE = "brew-v4";
+const CACHE = "brew-v5";
 const SHELL = [
   "./",
   "./index.html",
@@ -85,7 +85,18 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Everything else (font, icons, manifest): network-first, cache as fallback.
+  // The font never changes between deploys and is re-precached on every
+  // CACHE bump, so serve it from the cache: a connection that is up but
+  // passing no traffic would otherwise hold the font (and a late reflow of
+  // the big numerals) for as long as the network takes to give up.
+  if (req.destination === "font") {
+    e.respondWith(
+      caches.match(req).then((hit) => hit || fromNetwork(e, req)).catch(() => Response.error())
+    );
+    return;
+  }
+
+  // Everything else (icons, manifest): network-first, cache as fallback.
   e.respondWith(
     fromNetwork(e, req).catch(() => caches.match(req).then((hit) => hit || Response.error()))
   );
